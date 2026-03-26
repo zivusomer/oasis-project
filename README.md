@@ -28,35 +28,6 @@ Alternatively: run `npm start` (which uses `--inspect`), then **Run → Start De
 
 Server listens on `http://localhost:3000` (or `PORT` env var).
 
-- **`GET /`** – Welcome JSON with links to the APIs.
-- **`GET /hello-world`** – `{"message":"Hello, World!"}`
-- **`GET /echo`** – No body; responds with `{ "message": "GET request with no message posted, echo nothing" }`.
-- **`POST /echo`** – Body JSON `{ "message": "<string>" }` – responds with the same `{ "message": "..." }`.
-
-## Deployment (AWS App Runner)
-
-This app is deployed on **AWS App Runner** and is wired to the GitHub repo for this codebase. The live service is updated automatically when you push to the default branch (`main`).
-
-### How to open the App Runner service
-
-1. Open the **AWS Console** and switch to region **eu-west-3** (Paris).
-2. Go to **App Runner** (search for “App Runner” in the console or use **Services → App Runner**).
-3. In the left sidebar, open **Services** and select **PlaygroundService** (or the service name you gave when creating it).
-
-**Direct link to the service dashboard (eu-west-3):**  
-[App Runner – PlaygroundService (eu-west-3)](https://eu-west-3.console.aws.amazon.com/apprunner/home?region=eu-west-3#/services/dashboard?service_arn=arn%3Aaws%3Aapprunner%3Aeu-west-3%3A732304102656%3Aservice%2FPlaygroundService%2Fbd3bb3ae72b64ed0acfa6bb39d621db1&active_tab=logs)
-
-From the service page you can see the **Service URL**, **Logs**, **Metrics**, and **Configuration** (e.g. build and runtime settings, env vars).
-
-### Automatic deployment
-
-- **Source:** The App Runner service is connected to this repository. It uses the branch you configured (typically `main` or `master`).
-- **Trigger:** A **push to that branch** starts a new deployment. App Runner runs the build (e.g. `npm install`, your build command) and then deploys the new version.
-- **Build/runtime:** Configure the build command (e.g. `npm run gulp` or `gulp`) and start command (e.g. `npm start` or `node dist/index.js`) in the App Runner service configuration so the deployed app matches local behavior.
-- **Result:** After a successful deployment, the **Service URL** serves the latest code. No separate CI server is required; App Runner handles build and deploy from GitHub.
-
-For adding a cloud database (e.g. RDS or DynamoDB) and other AWS options, see **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
-
 ## Project structure
 
 ```
@@ -70,7 +41,6 @@ src/
 ├── routes/
 │   ├── index.ts      # Mounts shared middleware, GET / overview, and each API router
 │   ├── helloWorld.ts # GET /hello-world
-│   └── echo.ts       # GET /echo (no body) and POST /echo (echo JSON message)
 └── middleware/
     ├── index.ts      # Exports shared middleware and types
     ├── requestLogger.ts
