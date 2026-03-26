@@ -1,0 +1,8 @@
+$kind: collection
+name: 'Simple Common APIs'
+description: |-
+  Requests for the playground API: root overview, hello-world, and echo.
+
+  **How to use**
+  - Select the *Development* or *Production* environment.
+  - Set `baseURL` (e.g. `http://localhost:3000` locally, or your App Runner URL).

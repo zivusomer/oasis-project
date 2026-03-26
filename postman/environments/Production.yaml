@@ -1,0 +1,6 @@
+name: Production
+values:
+  - key: baseURL
+    value: ''
+    enabled: true
+    type: default

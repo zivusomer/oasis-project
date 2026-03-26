@@ -1,0 +1,10 @@
+$kind: http-request
+name: 'API root (welcome)'
+method: GET
+url: '{{baseURL}}/'
+order: 1000
+description: |-
+  Returns welcome JSON and a list of endpoint links (`method` + `url`).
+headers:
+  - key: Accept
+    value: application/json

@@ -1,0 +1,12 @@
+$kind: http-request
+name: 'Echo (GET — no body)'
+method: GET
+url: '{{baseURL}}/echo'
+order: 2000
+description: |-
+  GET on `/echo` with no message. Response includes a fixed message explaining nothing was echoed.
+
+  Expected: `{ "message": "GET request with no message posted, echo nothing" }`.
+headers:
+  - key: Accept
+    value: application/json
