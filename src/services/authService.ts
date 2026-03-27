@@ -7,13 +7,15 @@ import {
   AuthenticatedUser,
   AuthTokenPayload,
   JiraLoginInput,
-  JoseModuleContract,
+  JoseProviderContract,
   LoginResult,
 } from '../interfaces/auth';
 
 export class AuthService {
+  constructor(private joseProvider: JoseProviderContract) {}
+
   public async loginWithJira(input: JiraLoginInput): Promise<LoginResult> {
-    const jose = await this.loadJose();
+    const jose = await this.joseProvider.getJose();
     await this.validateJiraCredentials(input);
 
     const expiresInSeconds = this.getTokenTtlSeconds();
@@ -45,7 +47,7 @@ export class AuthService {
 
   public async verifyAuthToken(token: string): Promise<AuthenticatedUser> {
     try {
-      const jose = await this.loadJose();
+      const jose = await this.joseProvider.getJose();
       const decrypted = await jose.jwtDecrypt(token, this.getAuthSecret(), {
         clockTolerance: AuthConstants.AUTH_CLOCK_TOLERANCE_SECONDS,
       });
@@ -68,12 +70,6 @@ export class AuthService {
       }
       throw error;
     }
-  }
-
-  private async loadJose(): Promise<JoseModuleContract> {
-    const dynamicImport = new Function('specifier', 'return import(specifier)');
-    const loaded = await dynamicImport('jose');
-    return loaded;
   }
 
   private getAuthSecret(): Uint8Array {

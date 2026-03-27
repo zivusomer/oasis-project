@@ -9,10 +9,12 @@ import { TicketsRoutes } from '../routes/tickets';
 import { AuthService } from '../services/authService';
 import { CreateTicketService } from '../services/createTicketService';
 import { JiraGateway } from '../services/jiraGateway';
+import { JoseProvider } from '../services/joseProvider';
 import { RecentTicketsService } from '../services/recentTicketsService';
 
 export class AppContainer {
   private authService: AuthService;
+  private joseProvider: JoseProvider;
   private asyncRouteAdapter: AsyncRouteAdapter;
   private authController: AuthController;
   private ticketsController: TicketsController;
@@ -26,7 +28,8 @@ export class AppContainer {
   private apiRouterRegistry: ApiRouterRegistry;
 
   constructor() {
-    this.authService = new AuthService();
+    this.joseProvider = new JoseProvider();
+    this.authService = new AuthService(this.joseProvider);
     this.asyncRouteAdapter = new AsyncRouteAdapter();
     this.authController = new AuthController(this.authService);
     this.jiraGateway = new JiraGateway();

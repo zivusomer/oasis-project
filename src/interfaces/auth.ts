@@ -42,3 +42,7 @@ export interface JoseModuleContract {
     options?: { clockTolerance?: number }
   ): Promise<{ payload: Record<string, unknown> }>;
 }
+
+export interface JoseProviderContract {
+  getJose(): Promise<JoseModuleContract>;
+}
