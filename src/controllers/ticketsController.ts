@@ -1,19 +1,20 @@
 import { HttpStatusConstants } from '../constants/HttpStatusConstants';
 import { JiraConstants } from '../constants/JiraConstants';
 import { Request, Response } from 'express';
+import { AuthRequestContext } from '../middleware/authRequestContext';
 import { CreateTicketService } from '../services/createTicketService';
 import { RecentTicketsService } from '../services/recentTicketsService';
 import { createHttpError } from '../middleware/errorHandler';
-import { AuthenticatedUser } from '../interfaces/auth';
 
 export class TicketsController {
   constructor(
     private createTicketService: CreateTicketService,
-    private recentTicketsService: RecentTicketsService
+    private recentTicketsService: RecentTicketsService,
+    private authRequestContext: AuthRequestContext
   ) {}
 
   public async createTicket(req: Request, res: Response): Promise<void> {
-    const authUser = this.getAuthenticatedUser(req);
+    const authUser = this.authRequestContext.getAuthenticatedUser(req);
     const projectKey = req.body.projectKey;
     const title = req.body.title;
     const description = req.body.description;
@@ -43,7 +44,7 @@ export class TicketsController {
   }
 
   public async getRecentTickets(req: Request, res: Response): Promise<void> {
-    const authUser = this.getAuthenticatedUser(req);
+    const authUser = this.authRequestContext.getAuthenticatedUser(req);
     const dynamicProjectKey = Reflect.get(req.query, 'projectKey');
     const projectKey = typeof dynamicProjectKey === 'string' ? dynamicProjectKey.trim() : '';
     if (!projectKey) {
@@ -61,31 +62,5 @@ export class TicketsController {
       projectKey,
     });
     res.status(200).json(result);
-  }
-
-  private getAuthenticatedUser(req: Request): AuthenticatedUser {
-    const authUser = Reflect.get(req, 'authUser');
-    if (!authUser || typeof authUser !== 'object') {
-      throw createHttpError(
-        HttpStatusConstants.UNAUTHORIZED,
-        'Missing authenticated user context',
-        {
-          code: 'UNAUTHORIZED',
-        }
-      );
-    }
-
-    const email = Reflect.get(authUser, 'email');
-    const jiraApiToken = Reflect.get(authUser, 'jiraApiToken');
-    if (typeof email !== 'string' || typeof jiraApiToken !== 'string') {
-      throw createHttpError(
-        HttpStatusConstants.UNAUTHORIZED,
-        'Missing authenticated user context',
-        {
-          code: 'UNAUTHORIZED',
-        }
-      );
-    }
-    return { email, jiraApiToken };
   }
 }

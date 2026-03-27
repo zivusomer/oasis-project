@@ -2,6 +2,7 @@ import { AuthController } from '../controllers/authController';
 import { TicketsController } from '../controllers/ticketsController';
 import { AsyncRouteAdapter } from '../middleware/asyncRoute';
 import { AuthGuard } from '../middleware/authGuard';
+import { AuthRequestContext } from '../middleware/authRequestContext';
 import { AuthRoutes } from '../routes/auth';
 import { ApiRouterRegistry, RouteRegistration } from '../routes/index';
 import { TicketsRoutes } from '../routes/tickets';
@@ -19,6 +20,7 @@ export class AppContainer {
   private recentTicketsService: RecentTicketsService;
   private jiraGateway: JiraGateway;
   private authGuard: AuthGuard;
+  private authRequestContext: AuthRequestContext;
   private authRoutes: AuthRoutes;
   private ticketsRoutes: TicketsRoutes;
   private apiRouterRegistry: ApiRouterRegistry;
@@ -30,9 +32,11 @@ export class AppContainer {
     this.jiraGateway = new JiraGateway();
     this.createTicketService = new CreateTicketService(this.jiraGateway);
     this.recentTicketsService = new RecentTicketsService(this.jiraGateway);
+    this.authRequestContext = new AuthRequestContext();
     this.ticketsController = new TicketsController(
       this.createTicketService,
-      this.recentTicketsService
+      this.recentTicketsService,
+      this.authRequestContext
     );
     this.authGuard = new AuthGuard(this.authService);
 
