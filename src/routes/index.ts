@@ -1,6 +1,4 @@
 import { Express, Router } from 'express';
-import auth, { authApiOverview } from './auth';
-import tickets, { ticketsApiOverview } from './tickets';
 import { ApiOverviewEntry, EndpointEntry } from '../interfaces/http';
 
 export interface RouteRegistration {
@@ -10,14 +8,9 @@ export interface RouteRegistration {
 }
 
 export class ApiRouterRegistry {
-  private apiList: RouteRegistration[];
   private router: Router;
 
-  constructor() {
-    this.apiList = [
-      { prefix: '/auth', router: auth, overview: authApiOverview },
-      { prefix: '/tickets', router: tickets, overview: ticketsApiOverview },
-    ];
+  constructor(private apiList: RouteRegistration[]) {
     this.router = Router();
     this.registerRoutes();
   }
@@ -50,10 +43,4 @@ export class ApiRouterRegistry {
     }
     return endpoints;
   }
-}
-
-const apiRouterRegistry = new ApiRouterRegistry();
-
-export function mountRoutes(app: Express): void {
-  apiRouterRegistry.mountRoutes(app);
 }

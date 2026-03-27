@@ -2,17 +2,15 @@ import { Router, Request, Response } from 'express';
 import { AsyncRouteAdapter } from '../middleware/asyncRoute';
 import { AuthController } from '../controllers/authController';
 import { ApiOverviewEntry } from '../interfaces/http';
-import { AuthService } from '../services/authService';
 
 export class AuthRoutes {
   private router: Router;
-  private asyncRouteAdapter: AsyncRouteAdapter;
-  private authController: AuthController;
 
-  constructor() {
+  constructor(
+    private authController: AuthController,
+    private asyncRouteAdapter: AsyncRouteAdapter
+  ) {
     this.router = Router();
-    this.asyncRouteAdapter = new AsyncRouteAdapter();
-    this.authController = new AuthController(new AuthService());
     this.registerRoutes();
   }
 
@@ -39,7 +37,3 @@ export class AuthRoutes {
     );
   }
 }
-
-const authRoutes = new AuthRoutes();
-export const authApiOverview = authRoutes.getApiOverview();
-export default authRoutes.getRouter();

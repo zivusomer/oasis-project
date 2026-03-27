@@ -1,5 +1,6 @@
 const request = require('supertest');
-const app = require('../src/app').default;
+import { AppFactory } from '../src/app';
+import { AppContainer } from '../src/container/AppContainer';
 
 export class FetchMockFactory {
   public static getFetchUrl(input: unknown): string {
@@ -25,6 +26,7 @@ export class FetchMockFactory {
 
 export class ApiTestSupport {
   private static originalFetch: typeof global.fetch;
+  private static app = new AppFactory().createApp(new AppContainer().getApiRouterRegistry());
 
   public static beforeEach(): void {
     ApiTestSupport.originalFetch = global.fetch;
@@ -37,7 +39,7 @@ export class ApiTestSupport {
   }
 
   public static getAppRequest() {
-    return request(app);
+    return request(ApiTestSupport.app);
   }
 
   public static async loginAndGetToken(): Promise<string> {

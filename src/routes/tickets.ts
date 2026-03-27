@@ -3,19 +3,16 @@ import { AsyncRouteAdapter } from '../middleware/asyncRoute';
 import { AuthGuard } from '../middleware/requireAuth';
 import { TicketsController } from '../controllers/ticketsController';
 import { ApiOverviewEntry } from '../interfaces/http';
-import { AuthService } from '../services/authService';
 
 export class TicketsRoutes {
   private router: Router;
-  private asyncRouteAdapter: AsyncRouteAdapter;
-  private authGuard: AuthGuard;
-  private ticketsController: TicketsController;
 
-  constructor() {
+  constructor(
+    private ticketsController: TicketsController,
+    private authGuard: AuthGuard,
+    private asyncRouteAdapter: AsyncRouteAdapter
+  ) {
     this.router = Router();
-    this.asyncRouteAdapter = new AsyncRouteAdapter();
-    this.authGuard = new AuthGuard(new AuthService());
-    this.ticketsController = new TicketsController();
     this.registerRoutes();
   }
 
@@ -48,7 +45,3 @@ export class TicketsRoutes {
     );
   }
 }
-
-const ticketsRoutes = new TicketsRoutes();
-export const ticketsApiOverview = ticketsRoutes.getApiOverview();
-export default ticketsRoutes.getRouter();

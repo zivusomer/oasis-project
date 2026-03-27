@@ -1,18 +1,24 @@
-import app from './app';
+import { AppFactory } from './app';
+import { AppContainer } from './container/AppContainer';
 import { Startup } from './startup';
 
 const PORT = process.env.PORT || 3000;
 
 export class ApplicationRunner {
   private startup: Startup;
+  private appContainer: AppContainer;
+  private appFactory: AppFactory;
 
   constructor() {
     this.startup = new Startup();
+    this.appContainer = new AppContainer();
+    this.appFactory = new AppFactory();
   }
 
   public async run(): Promise<void> {
     this.registerProcessGuards();
     await this.startup.run();
+    const app = this.appFactory.createApp(this.appContainer.getApiRouterRegistry());
     const server = app.listen(PORT, () => {
       console.log(`Server running at http://localhost:${PORT}`);
     });
