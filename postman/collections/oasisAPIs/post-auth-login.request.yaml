@@ -1,13 +1,13 @@
 $kind: http-request
 name: POST /auth/login
 method: POST
-url: '{{baseURL}}/auth/login'
+url: "{{baseURL}}/auth/login"
 headers:
   Content-Type: application/json
 body:
   type: json
-  content: |-
+  content: >-
     {
-      "email": "user@example.com",
-      "jiraApiToken": "replace-with-jira-api-token"
+      "email": "{{jiraEmail}}",
+      "jiraApiToken": "{{jiraApiToken}}"
     }

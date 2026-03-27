@@ -8,3 +8,11 @@ values:
     value: ''
     enabled: true
     type: secret
+  - key: jiraEmail
+    value: ''
+    enabled: true
+    type: default
+  - key: jiraApiToken
+    value: ''
+    enabled: true
+    type: secret
