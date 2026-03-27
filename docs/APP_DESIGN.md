@@ -180,3 +180,53 @@ Done manually in this order in Postman requests committed to this project:
   2. token update into Postman Development environment `authToken`
   3. `POST /tickets`
   4. `GET /tickets/recent`
+
+## Frontend Stage (React UI)
+
+This stage adds a browser UI on top of the existing stateless backend flow.
+
+### Scope Implemented
+
+- Login screen that calls `POST /auth/login` with:
+  - Jira email
+  - Jira API token
+- NHI finding creation form:
+  - project key input (user writes/selects key)
+  - title (summary)
+  - description
+  - submits to `POST /tickets`
+- Recent tickets view:
+  - calls `GET /tickets/recent?projectKey=...`
+  - shows ticket title and creation timestamp
+  - each item opens Jira issue URL in a new tab
+
+### Frontend Token Handling
+
+- Backend app token is returned by `/auth/login` response body.
+- Frontend stores this token in runtime state and automatically attaches it as Bearer auth for ticket APIs.
+- UI does not ask user to re-enter token manually for each request.
+- If login does not succeed, token is not set and ticket requests will fail with auth errors.
+
+### Validation Expectations in UI
+
+- Basic required-field validation exists on forms (browser + component checks).
+- Backend remains source of truth for business/security validation:
+  - missing/invalid auth header
+  - invalid Jira credentials
+  - invalid project key
+  - payload validation and downstream Jira errors
+- UI surfaces backend error payload messages.
+
+### Token Invalidation Semantics (Current Design)
+
+- Current architecture is stateless and does not include a dedicated revoke/logout API.
+- Effective invalidation paths:
+  - app token expiry (TTL)
+  - changing server `AUTH_TOKEN_SECRET` (global invalidation)
+  - revoking Jira API token in Atlassian (Jira operations stop succeeding)
+
+### Frontend Runtime
+
+- Frontend stack: React + Vite in `frontend/`.
+- Local dev URL is `http://localhost:5173`.
+- Vite proxies `/auth` and `/tickets` to backend `http://localhost:3000` in development.

@@ -31,6 +31,9 @@
     "clean": "gulp clean",
     "start": "gulp && node --inspect dist/index.js",
     "dev": "ts-node --watch src/index.ts",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:preview": "npm --prefix frontend run preview",
     "test": "node -r ts-node/register --test test/*.test.ts",
     "prepare": "husky"
   },
