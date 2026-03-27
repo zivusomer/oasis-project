@@ -3,13 +3,26 @@ const assert = require('node:assert');
 const request = require('supertest');
 const app = require('../src/app').default;
 
-function getFetchUrl(input: RequestInfo | URL): string {
-  if (typeof input === 'string') return input;
-  if (input instanceof URL) return input.toString();
-  if (input && typeof input === 'object' && 'url' in input) {
-    return String((input as { url?: unknown }).url || '');
+class FetchMockFactory {
+  static getFetchUrl(input: unknown) {
+    if (typeof input === 'string') return input;
+    if (input instanceof URL) return input.toString();
+    if (input && typeof input === 'object' && 'url' in input) {
+      return String(input.url || '');
+    }
+    return String(input);
   }
-  return String(input);
+
+  static jsonResponse(status: number, payload: unknown) {
+    return new Response(JSON.stringify(payload), {
+      status,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  static emptyResponse(status: number) {
+    return new Response('', { status });
+  }
 }
 
 describe('Auth flow', () => {
@@ -25,11 +38,7 @@ describe('Auth flow', () => {
   });
 
   it('POST /auth/login returns 200 with token for valid Jira credentials', async () => {
-    global.fetch = async () =>
-      ({
-        ok: true,
-        status: 200,
-      }) as Response;
+    global.fetch = async () => FetchMockFactory.emptyResponse(200);
 
     const res = await request(app).post('/auth/login').send({
       email: 'user@example.com',
@@ -44,11 +53,7 @@ describe('Auth flow', () => {
   });
 
   it('POST /auth/login returns 401 for invalid Jira credentials', async () => {
-    global.fetch = async () =>
-      ({
-        ok: false,
-        status: 401,
-      }) as Response;
+    global.fetch = async () => FetchMockFactory.emptyResponse(401);
 
     const res = await request(app).post('/auth/login').send({
       email: 'user@example.com',
@@ -71,46 +76,25 @@ describe('Auth flow', () => {
   });
 
   it('POST /tickets returns 201 when using valid token from /auth/login', async () => {
-    global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = getFetchUrl(input);
+    global.fetch = async (input, init) => {
+      const url = FetchMockFactory.getFetchUrl(input);
       if (url.endsWith('/rest/api/3/myself')) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({}),
-          text: async () => '',
-        } as Response;
+        return FetchMockFactory.emptyResponse(200);
       }
 
       if (url.endsWith('/rest/api/3/project/SEC') && init?.method === 'GET') {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ key: 'SEC' }),
-          text: async () => '',
-          headers: { get: () => 'application/json' },
-        } as unknown as Response;
+        return FetchMockFactory.jsonResponse(200, { key: 'SEC' });
       }
 
       if (url.endsWith('/rest/api/3/issue') && init?.method === 'POST') {
-        return {
-          ok: true,
-          status: 201,
-          json: async () => ({
-            id: '10001',
-            key: 'SEC-101',
-            self: 'https://jira.example/issue/10001',
-          }),
-          text: async () => '',
-        } as Response;
+        return FetchMockFactory.jsonResponse(201, {
+          id: '10001',
+          key: 'SEC-101',
+          self: 'https://jira.example/issue/10001',
+        });
       }
 
-      return {
-        ok: false,
-        status: 500,
-        json: async () => ({}),
-        text: async () => '',
-      } as Response;
+      return FetchMockFactory.emptyResponse(500);
     };
 
     const loginRes = await request(app).post('/auth/login').send({
@@ -136,32 +120,17 @@ describe('Auth flow', () => {
   });
 
   it('POST /tickets returns 400 for invalid Jira project key', async () => {
-    global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = getFetchUrl(input);
+    global.fetch = async (input, init) => {
+      const url = FetchMockFactory.getFetchUrl(input);
       if (url.endsWith('/rest/api/3/myself')) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({}),
-          text: async () => '',
-        } as Response;
+        return FetchMockFactory.emptyResponse(200);
       }
 
       if (url.endsWith('/rest/api/3/project/INVALID') && init?.method === 'GET') {
-        return {
-          ok: false,
-          status: 404,
-          json: async () => ({}),
-          text: async () => '',
-        } as Response;
+        return FetchMockFactory.emptyResponse(404);
       }
 
-      return {
-        ok: false,
-        status: 500,
-        json: async () => ({}),
-        text: async () => '',
-      } as Response;
+      return FetchMockFactory.emptyResponse(500);
     };
 
     const loginRes = await request(app).post('/auth/login').send({
@@ -185,55 +154,33 @@ describe('Auth flow', () => {
   });
 
   it('GET /tickets/recent returns 200 with recent issues when authenticated', async () => {
-    global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = getFetchUrl(input);
+    global.fetch = async (input, init) => {
+      const url = FetchMockFactory.getFetchUrl(input);
       if (url.endsWith('/rest/api/3/myself')) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({}),
-          text: async () => '',
-        } as Response;
+        return FetchMockFactory.emptyResponse(200);
       }
 
       if (url.endsWith('/rest/api/3/project/KAN')) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ key: 'KAN' }),
-          text: async () => '',
-          headers: { get: () => 'application/json' },
-        } as unknown as Response;
+        return FetchMockFactory.jsonResponse(200, { key: 'KAN' });
       }
 
       if (init?.method === 'GET') {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({
-            issues: [
-              {
-                id: '10002',
-                key: 'KAN-55',
-                self: 'https://jira.example/issue/10002',
-                fields: {
-                  summary: 'Finding one',
-                  created: '2026-03-27T10:00:00.000+0000',
-                },
+        return FetchMockFactory.jsonResponse(200, {
+          issues: [
+            {
+              id: '10002',
+              key: 'KAN-55',
+              self: 'https://jira.example/issue/10002',
+              fields: {
+                summary: 'Finding one',
+                created: '2026-03-27T10:00:00.000+0000',
               },
-            ],
-          }),
-          text: async () => '',
-          headers: { get: () => 'application/json' },
-        } as unknown as Response;
+            },
+          ],
+        });
       }
 
-      return {
-        ok: false,
-        status: 500,
-        json: async () => ({}),
-        text: async () => '',
-      } as Response;
+      return FetchMockFactory.emptyResponse(500);
     };
 
     const loginRes = await request(app).post('/auth/login').send({
@@ -253,13 +200,7 @@ describe('Auth flow', () => {
   });
 
   it('GET /tickets/recent returns 400 when projectKey query param is missing', async () => {
-    global.fetch = async () =>
-      ({
-        ok: true,
-        status: 200,
-        json: async () => ({}),
-        text: async () => '',
-      }) as Response;
+    global.fetch = async () => FetchMockFactory.emptyResponse(200);
 
     const loginRes = await request(app).post('/auth/login').send({
       email: 'user@example.com',
@@ -278,44 +219,22 @@ describe('Auth flow', () => {
   it('GET /tickets/recent queries Jira with app-created label filter', async () => {
     let capturedSearchUrl = '';
 
-    global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = getFetchUrl(input);
+    global.fetch = async (input, init) => {
+      const url = FetchMockFactory.getFetchUrl(input);
       if (url.endsWith('/rest/api/3/myself')) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({}),
-          text: async () => '',
-        } as Response;
+        return FetchMockFactory.emptyResponse(200);
       }
 
       if (url.endsWith('/rest/api/3/project/KAN')) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ key: 'KAN' }),
-          text: async () => '',
-          headers: { get: () => 'application/json' },
-        } as unknown as Response;
+        return FetchMockFactory.jsonResponse(200, { key: 'KAN' });
       }
 
       if (url.includes('/rest/api/3/search')) {
         capturedSearchUrl = url;
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ issues: [] }),
-          text: async () => '',
-          headers: { get: () => 'application/json' },
-        } as unknown as Response;
+        return FetchMockFactory.jsonResponse(200, { issues: [] });
       }
 
-      return {
-        ok: false,
-        status: 500,
-        json: async () => ({}),
-        text: async () => '',
-      } as Response;
+      return FetchMockFactory.emptyResponse(500);
     };
 
     const loginRes = await request(app).post('/auth/login').send({

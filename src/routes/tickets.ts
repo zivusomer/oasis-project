@@ -1,25 +1,54 @@
 import { Router, Request, Response } from 'express';
-import { asyncRoute } from '../middleware/asyncRoute';
-import { requireAuth } from '../middleware/requireAuth';
-import { createTicket, getRecentTickets } from '../controllers/ticketsController';
+import { AsyncRouteAdapter } from '../middleware/asyncRoute';
+import { AuthGuard } from '../middleware/requireAuth';
+import { TicketsController } from '../controllers/ticketsController';
+import { ApiOverviewEntry } from '../interfaces/http';
+import { AuthService } from '../services/authService';
 
-const router = Router();
+export class TicketsRoutes {
+  private router: Router;
+  private asyncRouteAdapter: AsyncRouteAdapter;
+  private authGuard: AuthGuard;
+  private ticketsController: TicketsController;
 
-router.post(
-  '/',
-  requireAuth,
-  asyncRoute(async (req: Request, res: Response) => createTicket(req, res))
-);
+  constructor() {
+    this.router = Router();
+    this.asyncRouteAdapter = new AsyncRouteAdapter();
+    this.authGuard = new AuthGuard(new AuthService());
+    this.ticketsController = new TicketsController();
+    this.registerRoutes();
+  }
 
-router.get(
-  '/recent',
-  requireAuth,
-  asyncRoute(async (req: Request, res: Response) => getRecentTickets(req, res))
-);
+  public getRouter(): Router {
+    return this.router;
+  }
 
-export const apiOverview = [
-  { method: 'POST', path: '/', description: 'Create ticket (placeholder)' },
-  { method: 'GET', path: '/recent', description: 'Get recent tickets (placeholder)' },
-];
+  public getApiOverview(): ApiOverviewEntry[] {
+    return [
+      { method: 'POST', path: '/', description: 'Create ticket' },
+      { method: 'GET', path: '/recent', description: 'Get recent tickets' },
+    ];
+  }
 
-export default router;
+  private registerRoutes(): void {
+    this.router.post(
+      '/',
+      this.authGuard.requireAuth.bind(this.authGuard),
+      this.asyncRouteAdapter.wrap(async (req: Request, res: Response) =>
+        this.ticketsController.createTicket(req, res)
+      )
+    );
+
+    this.router.get(
+      '/recent',
+      this.authGuard.requireAuth.bind(this.authGuard),
+      this.asyncRouteAdapter.wrap(async (req: Request, res: Response) =>
+        this.ticketsController.getRecentTickets(req, res)
+      )
+    );
+  }
+}
+
+const ticketsRoutes = new TicketsRoutes();
+export const ticketsApiOverview = ticketsRoutes.getApiOverview();
+export default ticketsRoutes.getRouter();

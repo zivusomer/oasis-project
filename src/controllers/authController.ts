@@ -1,16 +1,24 @@
 import { Request, Response } from 'express';
-import { loginWithJira } from '../services/authService';
+import { AuthService } from '../services/authService';
 import { createHttpError } from '../middleware/errorHandler';
+import { LoginRequestBody } from '../interfaces/auth';
 
-export async function login(req: Request, res: Response): Promise<void> {
-  const { email, jiraApiToken } = req.body as { email?: string; jiraApiToken?: string };
+export class AuthController {
+  private authService: AuthService;
 
-  if (!email || !jiraApiToken) {
-    throw createHttpError(400, 'email and jiraApiToken are required', {
-      code: 'VALIDATION_ERROR',
-    });
+  constructor(authService: AuthService) {
+    this.authService = authService;
   }
 
-  const result = await loginWithJira({ email, jiraApiToken });
-  res.status(200).json(result);
+  public async login(req: Request<object, object, LoginRequestBody>, res: Response): Promise<void> {
+    const { email, jiraApiToken } = req.body;
+    if (!email || !jiraApiToken) {
+      throw createHttpError(400, 'email and jiraApiToken are required', {
+        code: 'VALIDATION_ERROR',
+      });
+    }
+
+    const result = await this.authService.loginWithJira({ email, jiraApiToken });
+    res.status(200).json(result);
+  }
 }

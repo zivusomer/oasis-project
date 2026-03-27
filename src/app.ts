@@ -2,16 +2,22 @@ import express, { Request, Response } from 'express';
 import { mountRoutes } from './routes';
 import { errorHandler } from './middleware/errorHandler';
 
-const app = express();
+export class AppFactory {
+  public createApp() {
+    const app = express();
 
-app.use(express.json());
-mountRoutes(app);
+    app.use(express.json());
+    mountRoutes(app);
 
-// 404 for any unmatched route (JSON response)
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: 'Not found', path: _req.path });
-});
+    app.use((req: Request, res: Response) => {
+      res.status(404).json({ error: 'Not found', path: req.path });
+    });
 
-app.use(errorHandler);
+    app.use(errorHandler);
+    return app;
+  }
+}
 
+const appFactory = new AppFactory();
+const app = appFactory.createApp();
 export default app;

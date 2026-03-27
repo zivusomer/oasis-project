@@ -1,20 +1,45 @@
 import { Router, Request, Response } from 'express';
-import { asyncRoute } from '../middleware/asyncRoute';
-import { login } from '../controllers/authController';
+import { AsyncRouteAdapter } from '../middleware/asyncRoute';
+import { AuthController } from '../controllers/authController';
+import { ApiOverviewEntry } from '../interfaces/http';
+import { AuthService } from '../services/authService';
 
-const router = Router();
+export class AuthRoutes {
+  private router: Router;
+  private asyncRouteAdapter: AsyncRouteAdapter;
+  private authController: AuthController;
 
-router.post(
-  '/login',
-  asyncRoute(async (req: Request, res: Response) => login(req, res))
-);
+  constructor() {
+    this.router = Router();
+    this.asyncRouteAdapter = new AsyncRouteAdapter();
+    this.authController = new AuthController(new AuthService());
+    this.registerRoutes();
+  }
 
-export const apiOverview = [
-  {
-    method: 'POST',
-    path: '/login',
-    description: 'Login with Jira credentials (pending implementation)',
-  },
-];
+  public getRouter(): Router {
+    return this.router;
+  }
 
-export default router;
+  public getApiOverview(): ApiOverviewEntry[] {
+    return [
+      {
+        method: 'POST',
+        path: '/login',
+        description: 'Login with Jira credentials',
+      },
+    ];
+  }
+
+  private registerRoutes(): void {
+    this.router.post(
+      '/login',
+      this.asyncRouteAdapter.wrap(async (req: Request, res: Response) =>
+        this.authController.login(req, res)
+      )
+    );
+  }
+}
+
+const authRoutes = new AuthRoutes();
+export const authApiOverview = authRoutes.getApiOverview();
+export default authRoutes.getRouter();

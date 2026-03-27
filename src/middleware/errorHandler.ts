@@ -1,43 +1,83 @@
-import { ErrorRequestHandler } from 'express';
+import { NextFunction, Request, Response } from 'express';
+import { HttpErrorContract, HttpErrorOptions } from '../interfaces/http';
 
-type HttpErrorShape = Error & {
+export class AppHttpError extends Error implements HttpErrorContract {
   statusCode?: number;
   code?: string;
   details?: unknown;
-};
 
-export function createHttpError(
-  statusCode: number,
-  message: string,
-  options?: { code?: string; details?: unknown }
-): HttpErrorShape {
-  const error = new Error(message) as HttpErrorShape;
-  error.statusCode = statusCode;
-  error.code = options?.code;
-  error.details = options?.details;
-  return error;
+  constructor(statusCode: number, message: string, options?: HttpErrorOptions) {
+    super(message);
+    this.statusCode = statusCode;
+    this.code = options?.code;
+    this.details = options?.details;
+  }
 }
 
-function getStatusCode(error: HttpErrorShape): number {
-  if (typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode <= 599) {
-    return error.statusCode;
+export class ErrorHandler {
+  public createHttpError(
+    statusCode: number,
+    message: string,
+    options?: HttpErrorOptions
+  ): AppHttpError {
+    return new AppHttpError(statusCode, message, options);
   }
-  return 500;
+
+  public handle(error: Error, _req: Request, res: Response, _next: NextFunction): void {
+    const statusCode = this.getStatusCode(error);
+    const isProduction = process.env.NODE_ENV === 'production';
+    const httpError = this.toHttpError(error);
+
+    if (statusCode >= 500) {
+      console.error(error);
+    }
+
+    const payload: Record<string, unknown> = {
+      error: statusCode >= 500 && isProduction ? 'Internal server error' : httpError.message,
+      code: httpError.code,
+      details: httpError.details,
+    };
+
+    if (!isProduction) {
+      payload.stack = httpError.stack;
+    }
+
+    res.status(statusCode).json(payload);
+  }
+
+  private getStatusCode(error: Error): number {
+    const httpError = this.toHttpError(error);
+    if (
+      typeof httpError.statusCode === 'number' &&
+      httpError.statusCode >= 400 &&
+      httpError.statusCode <= 599
+    ) {
+      return httpError.statusCode;
+    }
+    return 500;
+  }
+
+  private toHttpError(error: Error): HttpErrorContract {
+    if (error instanceof AppHttpError) {
+      return error;
+    }
+    const dynamicStatusCode = Reflect.get(error, 'statusCode');
+    const dynamicCode = Reflect.get(error, 'code');
+    const dynamicDetails = Reflect.get(error, 'details');
+
+    const fallbackError = new AppHttpError(500, error.message || 'Unexpected error');
+    if (typeof dynamicStatusCode === 'number') {
+      fallbackError.statusCode = dynamicStatusCode;
+    }
+    if (typeof dynamicCode === 'string') {
+      fallbackError.code = dynamicCode;
+    }
+    fallbackError.details = dynamicDetails;
+    return fallbackError;
+  }
 }
 
-export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-  const err = error as HttpErrorShape;
-  const statusCode = getStatusCode(err);
-  const isProduction = process.env.NODE_ENV === 'production';
+const errorHandlerInstance = new ErrorHandler();
 
-  if (statusCode >= 500) {
-    console.error(error);
-  }
-
-  res.status(statusCode).json({
-    error: statusCode >= 500 && isProduction ? 'Internal server error' : err.message,
-    code: err.code,
-    details: err.details,
-    ...(isProduction ? {} : { stack: err.stack }),
-  });
-};
+export const errorHandler = errorHandlerInstance.handle.bind(errorHandlerInstance);
+export const createHttpError = errorHandlerInstance.createHttpError.bind(errorHandlerInstance);
