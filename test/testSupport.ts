@@ -1,5 +1,5 @@
 const request = require('supertest');
-import { AppFactory } from '../src/app';
+import { AppFactory } from '../src/AppFactory';
 import { AppContainer } from '../src/container/AppContainer';
 
 export class FetchMockFactory {
