@@ -22,6 +22,7 @@ export interface JiraIssueSearchItem {
   fields?: {
     summary?: string;
     created?: string;
+    labels?: string[];
   };
 }
 

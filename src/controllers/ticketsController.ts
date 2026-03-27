@@ -8,6 +8,8 @@ import {
 } from '../interfaces/tickets';
 
 export class TicketsController {
+  private static readonly APP_CREATED_LABEL = 'identityhub-finding';
+
   public async createTicket(req: Request, res: Response): Promise<void> {
     const authUser = this.getAuthenticatedUser(req);
     const projectKey = req.body.projectKey;
@@ -97,10 +99,10 @@ export class TicketsController {
     const jiraBaseUrl = this.getJiraBaseUrl();
     await this.validateProjectKey(jiraBaseUrl, basicAuthValue, projectKey);
 
-    const jql = `project = "${projectKey}" AND labels = "identityhub-finding" ORDER BY created DESC`;
+    const jql = `project = "${projectKey}" AND labels = "${TicketsController.APP_CREATED_LABEL}" ORDER BY created DESC`;
     const searchUrl = `${jiraBaseUrl}/rest/api/3/search/jql?jql=${encodeURIComponent(
       jql
-    )}&maxResults=10&fields=summary,created`;
+    )}&maxResults=10&fields=summary,created,labels`;
     const response = await fetch(searchUrl, {
       method: 'GET',
       headers: {
@@ -127,14 +129,16 @@ export class TicketsController {
     }
 
     const searchResult = await this.parseIssueSearchResponse(response);
-    const issues = (searchResult.issues || []).map((issue: JiraIssueSearchItem) => ({
-      issueId: issue.id,
-      issueKey: issue.key,
-      issueUrl: issue.key ? `${jiraBaseUrl}/browse/${issue.key}` : undefined,
-      summary: issue.fields?.summary,
-      createdAt: issue.fields?.created,
-      jiraSelfUrl: issue.self,
-    }));
+    const issues = (searchResult.issues || [])
+      .filter((issue: JiraIssueSearchItem) => this.isAppCreatedIssue(issue))
+      .map((issue: JiraIssueSearchItem) => ({
+        issueId: issue.id,
+        issueKey: issue.key,
+        issueUrl: issue.key ? `${jiraBaseUrl}/browse/${issue.key}` : undefined,
+        summary: issue.fields?.summary,
+        createdAt: issue.fields?.created,
+        jiraSelfUrl: issue.self,
+      }));
 
     res.status(200).json({
       projectKey,
@@ -247,5 +251,11 @@ export class TicketsController {
       return json;
     }
     return { issues: [] };
+  }
+
+  private isAppCreatedIssue(issue: JiraIssueSearchItem): boolean {
+    const labels = issue.fields?.labels;
+    if (!labels) return false;
+    return labels.includes(TicketsController.APP_CREATED_LABEL);
   }
 }
