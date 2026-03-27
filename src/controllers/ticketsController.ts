@@ -1,9 +1,105 @@
 import { Request, Response } from 'express';
+import { createHttpError } from '../middleware/errorHandler';
+import { AuthenticatedUser } from '../services/authService';
 
-export async function createTicket(_req: Request, res: Response): Promise<void> {
-  res.status(200).json({ message: 'createTicket handler placeholder' });
+export async function createTicket(req: Request, res: Response): Promise<void> {
+  const authUser = (req as Request & { authUser?: AuthenticatedUser }).authUser;
+  if (!authUser) {
+    throw createHttpError(401, 'Missing authenticated user context', { code: 'UNAUTHORIZED' });
+  }
+
+  const { projectKey, title, description } = req.body as {
+    projectKey?: string;
+    title?: string;
+    description?: string;
+  };
+
+  if (!projectKey || !title || !description) {
+    throw createHttpError(400, 'projectKey, title, and description are required', {
+      code: 'VALIDATION_ERROR',
+    });
+  }
+
+  const basicAuthValue = Buffer.from(`${authUser.email}:${authUser.jiraApiToken}`).toString('base64');
+  const jiraBaseUrl = getJiraBaseUrl();
+  const response = await fetch(`${jiraBaseUrl}/rest/api/3/issue`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${basicAuthValue}`,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      fields: {
+        project: { key: projectKey },
+        summary: title,
+        description: {
+          type: 'doc',
+          version: 1,
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: description }],
+            },
+          ],
+        },
+        issuetype: { name: 'Task' },
+        labels: ['identityhub-finding'],
+      },
+    }),
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    throw createHttpError(401, 'Invalid Jira credentials', { code: 'INVALID_JIRA_CREDENTIALS' });
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw createHttpError(502, 'Failed to create Jira issue', {
+      code: 'JIRA_CREATE_ISSUE_FAILED',
+      details: {
+        status: response.status,
+        body: errorText || undefined,
+      },
+    });
+  }
+
+  const created = (await response.json()) as { id?: string; key?: string; self?: string };
+  if (!created.key) {
+    throw createHttpError(502, 'Jira issue creation response missing issue key', {
+      code: 'JIRA_INVALID_RESPONSE',
+    });
+  }
+
+  res.status(201).json({
+    issueId: created.id,
+    issueKey: created.key,
+    issueUrl: `${jiraBaseUrl}/browse/${created.key}`,
+    jiraSelfUrl: created.self,
+  });
 }
 
-export async function getRecentTickets(_req: Request, res: Response): Promise<void> {
-  res.status(200).json({ message: 'getRecentTickets handler placeholder' });
+export async function getRecentTickets(req: Request, res: Response): Promise<void> {
+  const authUser = (req as Request & { authUser?: AuthenticatedUser }).authUser;
+  if (!authUser) {
+    throw createHttpError(401, 'Missing authenticated user context', { code: 'UNAUTHORIZED' });
+  }
+
+  res.status(200).json({
+    message: `getRecentTickets handler placeholder for ${authUser.email}`,
+  });
+}
+
+function getJiraBaseUrl(): string {
+  const baseUrl = process.env.JIRA_BASE_URL;
+  if (!baseUrl || baseUrl.trim().length === 0) {
+    throw createHttpError(
+      500,
+      'JIRA_BASE_URL must be set (e.g. https://your-domain.atlassian.net)',
+      {
+        code: 'CONFIGURATION_ERROR',
+      }
+    );
+  }
+  return baseUrl.replace(/\/$/, '');
 }
