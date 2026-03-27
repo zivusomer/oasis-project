@@ -30,7 +30,7 @@
     "clean": "gulp clean",
     "start": "gulp && node --inspect dist/index.js",
     "dev": "ts-node --watch src/index.ts",
-    "test": "node -r ts-node/register --test test/helloWorld.test.ts",
+    "test": "node -r ts-node/register --test test/*.test.ts",
     "prepare": "husky"
   },
   "lint-staged": {

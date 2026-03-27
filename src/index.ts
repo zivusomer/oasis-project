@@ -3,6 +3,16 @@ import { runStartup } from './startup';
 
 const PORT = process.env.PORT || 3000;
 
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+  process.exit(1);
+});
+
 async function main(): Promise<void> {
   await runStartup();
   const server = app.listen(PORT, () => {

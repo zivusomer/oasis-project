@@ -2,6 +2,10 @@
 
 Node.js API built with TypeScript, Express, and Gulp. Uses a middleware pattern for all API routes.
 
+## Documentation
+
+- Product and architecture design notes: `docs/APP_DESIGN.md`
+
 ## Compile and run
 
 | Command | Description |

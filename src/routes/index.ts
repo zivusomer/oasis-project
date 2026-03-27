@@ -1,13 +1,12 @@
 import { Express, Router } from 'express';
-import { requestLogger } from '../middleware';
-import helloWorld, { apiOverview as helloWorldOverview } from './helloWorld';
-import echo, { apiOverview as echoOverview } from './echo';
+import auth, { apiOverview as authOverview } from './auth';
+import tickets, { apiOverview as ticketsOverview } from './tickets';
 
 export type ApiOverviewEntry = { method: string; path: string; description: string };
 
 const apiList: { prefix: string; router: Router; overview: ApiOverviewEntry[] }[] = [
-  { prefix: '/hello-world', router: helloWorld, overview: helloWorldOverview },
-  { prefix: '/echo', router: echo, overview: echoOverview },
+  { prefix: '/auth', router: auth, overview: authOverview },
+  { prefix: '/tickets', router: tickets, overview: ticketsOverview },
 ];
 
 function buildEndpoints(baseUrl: string): { method: string; url: string }[] {
@@ -22,8 +21,6 @@ function buildEndpoints(baseUrl: string): { method: string; url: string }[] {
 }
 
 const router = Router();
-
-router.use(requestLogger);
 
 router.get('/', (req, res) => {
   const baseUrl = `${req.protocol}://${req.get('host') || ''}`;
