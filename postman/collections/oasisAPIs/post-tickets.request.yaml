@@ -1,10 +1,10 @@
 $kind: http-request
 name: POST /tickets
 method: POST
-url: '{{baseURL}}/tickets'
+url: "{{baseURL}}/tickets"
 headers:
   Content-Type: application/json
-  Authorization: 'Bearer {{authToken}}'
+  Authorization: Bearer {{authToken}}
 body:
   type: json
   content: |-
@@ -13,3 +13,5 @@ body:
       "title": "Sample finding",
       "description": "Sample finding description"
     }
+auth:
+  type: bearer
