@@ -8,21 +8,18 @@ export class AuthGuard {
   constructor(private authService: AuthService) {}
 
   public requireAuth(req: Request, _res: Response, next: NextFunction): void {
-    let token = '';
     try {
-      token = this.extractBearerToken(req.header(AuthConstants.AUTH_HEADER_NAME));
+      const token = this.extractBearerToken(req.header(AuthConstants.AUTH_HEADER_NAME));
+      this.authService
+        .verifyAuthToken(token)
+        .then((user) => {
+          Reflect.set(req, 'authUser', user);
+          next();
+        })
+        .catch(next);
     } catch (error) {
       next(error);
-      return;
     }
-
-    this.authService
-      .verifyAuthToken(token)
-      .then((user) => {
-        Reflect.set(req, 'authUser', user);
-        next();
-      })
-      .catch(next);
   }
 
   private extractBearerToken(authorizationHeader?: string): string {
