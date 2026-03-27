@@ -95,8 +95,70 @@ export async function getRecentTickets(req: Request, res: Response): Promise<voi
     throw createHttpError(401, 'Missing authenticated user context', { code: 'UNAUTHORIZED' });
   }
 
+  const projectKey = String(req.query.projectKey || '').trim();
+  if (!projectKey) {
+    throw createHttpError(400, 'projectKey query parameter is required', {
+      code: 'VALIDATION_ERROR',
+    });
+  }
+
+  const basicAuthValue = Buffer.from(`${authUser.email}:${authUser.jiraApiToken}`).toString(
+    'base64'
+  );
+  const jiraBaseUrl = getJiraBaseUrl();
+  await validateProjectKey(jiraBaseUrl, basicAuthValue, projectKey);
+
+  const jql = `project = "${projectKey}" AND labels = "identityhub-finding" ORDER BY created DESC`;
+  const searchUrl = `${jiraBaseUrl}/rest/api/3/search/jql?jql=${encodeURIComponent(
+    jql
+  )}&maxResults=10&fields=summary,created`;
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      Authorization: `Basic ${basicAuthValue}`,
+      Accept: 'application/json',
+    },
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    throw createHttpError(401, 'Invalid Jira credentials', { code: 'INVALID_JIRA_CREDENTIALS' });
+  }
+
+  if (!response.ok) {
+    const jiraError = await readJiraError(response);
+    const isClientRequestError = response.status >= 400 && response.status < 500;
+    throw createHttpError(
+      isClientRequestError ? 400 : 502,
+      isClientRequestError ? 'Invalid recent tickets query' : 'Failed to fetch recent Jira tickets',
+      {
+        code: isClientRequestError ? 'JIRA_INVALID_RECENT_QUERY' : 'JIRA_RECENT_FETCH_FAILED',
+        details: jiraError,
+      }
+    );
+  }
+
+  const searchResult = (await response.json()) as {
+    issues?: Array<{
+      id?: string;
+      key?: string;
+      self?: string;
+      fields?: { summary?: string; created?: string };
+    }>;
+  };
+
+  const issues = (searchResult.issues || []).map((issue) => ({
+    issueId: issue.id,
+    issueKey: issue.key,
+    issueUrl: issue.key ? `${jiraBaseUrl}/browse/${issue.key}` : undefined,
+    summary: issue.fields?.summary,
+    createdAt: issue.fields?.created,
+    jiraSelfUrl: issue.self,
+  }));
+
   res.status(200).json({
-    message: `getRecentTickets handler placeholder for ${authUser.email}`,
+    projectKey,
+    count: issues.length,
+    issues,
   });
 }
 
@@ -151,7 +213,7 @@ function getJiraBaseUrl(): string {
 }
 
 async function readJiraError(response: FetchResponse): Promise<unknown> {
-  const contentType = response.headers.get('content-type') || '';
+  const contentType = response.headers?.get?.('content-type') || '';
   if (contentType.includes('application/json')) {
     try {
       return await response.json();

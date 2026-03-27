@@ -1,8 +1,6 @@
 $kind: http-request
 name: GET /tickets/recent
 method: GET
-url: "{{baseURL}}/tickets/recent?projectKey=SEC"
+url: "{{baseURL}}/tickets/recent?projectKey=KAN"
 headers:
   Authorization: Bearer {{authToken}}
-auth:
-  type: bearer
