@@ -1,10 +1,10 @@
 import { HttpStatusConstants } from '../constants/HttpStatusConstants';
 import { JiraConstants } from '../constants/JiraConstants';
 import { Request, Response } from 'express';
-import { AuthRequestContext } from '../middleware/authRequestContext';
+import { AuthRequestContext } from '../middleware/auth/authRequestContext';
 import { CreateTicketService } from '../services/createTicketService';
 import { RecentTicketsService } from '../services/recentTicketsService';
-import { createHttpError } from '../middleware/errorHandler';
+import { createHttpError } from '../middleware/errorHandlers/createHttpError';
 
 export class TicketsController {
   constructor(

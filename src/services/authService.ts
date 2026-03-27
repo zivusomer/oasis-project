@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'crypto';
 import { AuthConstants } from '../constants/AuthConstants';
 import { HttpStatusConstants } from '../constants/HttpStatusConstants';
 import { JiraConstants } from '../constants/JiraConstants';
-import { createHttpError } from '../middleware/errorHandler';
+import { createHttpError } from '../middleware/errorHandlers/createHttpError';
 import {
   AuthenticatedUser,
   AuthTokenPayload,

@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { ApiRouterRegistry } from './routes';
-import { errorHandler } from './middleware/errorHandler';
+import { errorHandler } from './middleware/errorHandlers/errorHandler';
 
 export class AppFactory {
   public createApp(apiRouterRegistry: ApiRouterRegistry) {

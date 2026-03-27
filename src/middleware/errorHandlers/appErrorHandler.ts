@@ -1,22 +1,24 @@
 import { NextFunction, Request, Response } from 'express';
-import { HttpStatusConstants } from '../constants/HttpStatusConstants';
-import { HttpErrorContract, HttpErrorOptions } from '../interfaces/http';
+import { HttpStatusConstants } from '../../constants/HttpStatusConstants';
+import { HttpErrorContract, HttpErrorOptions } from '../../interfaces/http';
+import { AppHttpError } from './AppHttpError';
 
-export class AppHttpError extends Error implements HttpErrorContract {
-  statusCode?: number;
-  code?: string;
-  details?: unknown;
+export class AppErrorHandler {
+  private static readonly instance = new AppErrorHandler();
 
-  constructor(statusCode: number, message: string, options?: HttpErrorOptions) {
-    super(message);
-    this.statusCode = statusCode;
-    this.code = options?.code;
-    this.details = options?.details;
+  public static createHttpError(
+    statusCode: number,
+    message: string,
+    options?: HttpErrorOptions
+  ): AppHttpError {
+    return AppErrorHandler.instance.buildHttpError(statusCode, message, options);
   }
-}
 
-export class ErrorHandler {
-  public createHttpError(
+  public static errorHandler(error: Error, req: Request, res: Response, next: NextFunction): void {
+    AppErrorHandler.instance.handle(error, req, res, next);
+  }
+
+  private buildHttpError(
     statusCode: number,
     message: string,
     options?: HttpErrorOptions
@@ -24,7 +26,7 @@ export class ErrorHandler {
     return new AppHttpError(statusCode, message, options);
   }
 
-  public handle(error: Error, _req: Request, res: Response, _next: NextFunction): void {
+  private handle(error: Error, _req: Request, res: Response, _next: NextFunction): void {
     const statusCode = this.getStatusCode(error);
     const isProduction = process.env.NODE_ENV === 'production';
     const httpError = this.toHttpError(error);
@@ -83,8 +85,3 @@ export class ErrorHandler {
     return fallbackError;
   }
 }
-
-const errorHandlerInstance = new ErrorHandler();
-
-export const errorHandler = errorHandlerInstance.handle.bind(errorHandlerInstance);
-export const createHttpError = errorHandlerInstance.createHttpError.bind(errorHandlerInstance);

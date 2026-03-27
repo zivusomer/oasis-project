@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
-import { createHttpError } from '../middleware/errorHandler';
+import { createHttpError } from '../middleware/errorHandlers/createHttpError';
 import { JiraLoginInput, LoginRequestBody } from '../interfaces/auth';
 
 export class AuthController {

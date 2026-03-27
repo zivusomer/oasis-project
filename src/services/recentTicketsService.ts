@@ -6,7 +6,7 @@ import {
   RecentTicketsInput,
   RecentTicketsResult,
 } from '../interfaces/tickets';
-import { createHttpError } from '../middleware/errorHandler';
+import { createHttpError } from '../middleware/errorHandlers/createHttpError';
 import { JiraGateway } from './jiraGateway';
 
 export class RecentTicketsService {

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { AsyncRouteAdapter } from '../middleware/asyncRoute';
-import { AuthGuard } from '../middleware/authGuard';
+import { AuthGuard } from '../middleware/auth/authGuard';
 import { TicketsController } from '../controllers/ticketsController';
 import { ApiOverviewEntry } from '../interfaces/http';
 

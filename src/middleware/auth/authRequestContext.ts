@@ -1,7 +1,7 @@
 import { Request } from 'express';
-import { HttpStatusConstants } from '../constants/HttpStatusConstants';
-import { AuthenticatedUser } from '../interfaces/auth';
-import { createHttpError } from './errorHandler';
+import { HttpStatusConstants } from '../../constants/HttpStatusConstants';
+import { AuthenticatedUser } from '../../interfaces/auth';
+import { createHttpError } from '../errorHandlers/createHttpError';
 
 export class AuthRequestContext {
   public getAuthenticatedUser(req: Request): AuthenticatedUser {

@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthConstants } from '../constants/AuthConstants';
-import { HttpStatusConstants } from '../constants/HttpStatusConstants';
-import { createHttpError } from './errorHandler';
-import { AuthService } from '../services/authService';
+import { AuthConstants } from '../../constants/AuthConstants';
+import { HttpStatusConstants } from '../../constants/HttpStatusConstants';
+import { createHttpError } from '../errorHandlers/createHttpError';
+import { AuthService } from '../../services/authService';
 
 export class AuthGuard {
   constructor(private authService: AuthService) {}

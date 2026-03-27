@@ -1,7 +1,7 @@
 import { HttpStatusConstants } from '../constants/HttpStatusConstants';
 import { JiraConstants } from '../constants/JiraConstants';
 import { AuthenticatedUser } from '../interfaces/auth';
-import { createHttpError } from '../middleware/errorHandler';
+import { createHttpError } from '../middleware/errorHandlers/createHttpError';
 
 export class JiraGateway {
   public buildBasicAuth(authUser: AuthenticatedUser): string {

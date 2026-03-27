@@ -17,6 +17,20 @@ describe('POST /tickets', () => {
     assert.strictEqual(res.body.code, 'MISSING_AUTH_HEADER');
   });
 
+  it('returns 401 when Authorization header is not Bearer scheme', async () => {
+    const res = await ApiTestSupport.getAppRequest()
+      .post('/tickets')
+      .set('Authorization', 'Basic abc123')
+      .send({
+        projectKey: 'SEC',
+        title: 'Test finding',
+        description: 'Wrong auth scheme should fail',
+      });
+
+    assert.strictEqual(res.status, 401);
+    assert.strictEqual(res.body.code, 'INVALID_AUTH_HEADER');
+  });
+
   it('returns 201 when using valid token and valid project key', async () => {
     global.fetch = async (input: unknown, init?: RequestInit) => {
       const url = FetchMockFactory.getFetchUrl(input);
