@@ -1,7 +1,7 @@
 import { AuthController } from '../controllers/authController';
 import { TicketsController } from '../controllers/ticketsController';
 import { AsyncRouteAdapter } from '../middleware/asyncRoute';
-import { AuthGuard } from '../middleware/requireAuth';
+import { AuthGuard } from '../middleware/authGuard';
 import { AuthRoutes } from '../routes/auth';
 import { ApiRouterRegistry, RouteRegistration } from '../routes/index';
 import { TicketsRoutes } from '../routes/tickets';

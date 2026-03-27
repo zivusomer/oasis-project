@@ -5,11 +5,7 @@ import { createHttpError } from './errorHandler';
 import { AuthService } from '../services/authService';
 
 export class AuthGuard {
-  private authService: AuthService;
-
-  constructor(authService: AuthService) {
-    this.authService = authService;
-  }
+  constructor(private authService: AuthService) {}
 
   public requireAuth(req: Request, _res: Response, next: NextFunction): void {
     let token = '';

@@ -1,4 +1,4 @@
-import { AppFactory } from '../app';
+import { AppFactory } from '../AppFactory';
 import { AppConstants } from '../constants/AppConstants';
 import { ProcessEventNames } from '../constants/ProcessEventNames';
 import { AppContainer } from '../container/AppContainer';
