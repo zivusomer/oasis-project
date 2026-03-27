@@ -3,12 +3,10 @@ name: POST /auth/login
 method: POST
 url: '{{baseURL}}/auth/login'
 headers:
-  - key: Content-Type
-    value: application/json
-    enabled: true
+  Content-Type: application/json
 body:
-  mode: raw
-  raw: |-
+  type: json
+  content: |-
     {
       "email": "user@example.com",
       "jiraApiToken": "replace-with-jira-api-token"

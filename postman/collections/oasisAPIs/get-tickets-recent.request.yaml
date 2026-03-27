@@ -3,6 +3,4 @@ name: GET /tickets/recent
 method: GET
 url: '{{baseURL}}/tickets/recent?projectKey=SEC'
 headers:
-  - key: Authorization
-    value: 'Bearer {{authToken}}'
-    enabled: true
+  Authorization: 'Bearer {{authToken}}'

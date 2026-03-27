@@ -11,6 +11,11 @@ cloudResources:
 
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:
-#localResources:
-#  collections:
-#    - ../tests/E2E Test Collection/
+localResources:
+  collections:
+    - ../postman/collections/oasisAPIs/
+  environments:
+    - ../postman/environments/Development.yaml
+    - ../postman/environments/Production.yaml
+  globals:
+    - ../postman/globals/workspace.globals.yaml
