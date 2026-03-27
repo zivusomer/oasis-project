@@ -9,9 +9,10 @@ body:
   type: json
   content: |-
     {
-      "projectKey": "SEC",
+      "projectKey": "KAN",
       "title": "Sample finding",
-      "description": "Sample finding description"
+      "description": "Sample finding description",
+      "issueType": "Task"
     }
 auth:
   type: bearer

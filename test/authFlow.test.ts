@@ -61,12 +61,48 @@ describe('Auth flow', () => {
     assert.strictEqual(res.body.code, 'MISSING_AUTH_HEADER');
   });
 
-  it('POST /tickets returns 200 when using valid token from /auth/login', async () => {
-    global.fetch = async () =>
-      ({
-        ok: true,
-        status: 200,
-      }) as Response;
+  it('POST /tickets returns 201 when using valid token from /auth/login', async () => {
+    global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/rest/api/3/myself')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({}),
+          text: async () => '',
+        } as Response;
+      }
+
+      if (url.endsWith('/rest/api/3/project/SEC') && init?.method === 'GET') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ key: 'SEC' }),
+          text: async () => '',
+          headers: { get: () => 'application/json' },
+        } as unknown as Response;
+      }
+
+      if (url.endsWith('/rest/api/3/issue') && init?.method === 'POST') {
+        return {
+          ok: true,
+          status: 201,
+          json: async () => ({
+            id: '10001',
+            key: 'SEC-101',
+            self: 'https://jira.example/issue/10001',
+          }),
+          text: async () => '',
+        } as Response;
+      }
+
+      return {
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+        text: async () => '',
+      } as Response;
+    };
 
     const loginRes = await request(app).post('/auth/login').send({
       email: 'user@example.com',
@@ -85,7 +121,57 @@ describe('Auth flow', () => {
         description: 'Should pass with valid token',
       });
 
-    assert.strictEqual(ticketsRes.status, 200);
-    assert.match(ticketsRes.body.message, /createTicket handler placeholder/);
+    assert.strictEqual(ticketsRes.status, 201);
+    assert.strictEqual(ticketsRes.body.issueKey, 'SEC-101');
+    assert.strictEqual(ticketsRes.body.issueUrl, 'https://example.atlassian.net/browse/SEC-101');
+  });
+
+  it('POST /tickets returns 400 for invalid Jira project key', async () => {
+    global.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/rest/api/3/myself')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({}),
+          text: async () => '',
+        } as Response;
+      }
+
+      if (url.endsWith('/rest/api/3/project/INVALID') && init?.method === 'GET') {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({}),
+          text: async () => '',
+        } as Response;
+      }
+
+      return {
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+        text: async () => '',
+      } as Response;
+    };
+
+    const loginRes = await request(app).post('/auth/login').send({
+      email: 'user@example.com',
+      jiraApiToken: 'valid-token',
+    });
+
+    assert.strictEqual(loginRes.status, 200);
+
+    const ticketsRes = await request(app)
+      .post('/tickets')
+      .set('Authorization', `Bearer ${loginRes.body.token}`)
+      .send({
+        projectKey: 'INVALID',
+        title: 'Test finding',
+        description: 'Should fail for invalid project key',
+      });
+
+    assert.strictEqual(ticketsRes.status, 400);
+    assert.strictEqual(ticketsRes.body.code, 'INVALID_PROJECT_KEY');
   });
 });
