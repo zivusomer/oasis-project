@@ -1,0 +1,15 @@
+$kind: request
+name: POST /auth/login
+method: POST
+url: '{{baseURL}}/auth/login'
+headers:
+  - key: Content-Type
+    value: application/json
+    enabled: true
+body:
+  mode: raw
+  raw: |-
+    {
+      "email": "user@example.com",
+      "jiraApiToken": "replace-with-jira-api-token"
+    }

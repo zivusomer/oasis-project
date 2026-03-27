@@ -1,0 +1,14 @@
+$kind: collection
+name: Oasis APIs
+description: |-
+  Requests for the Oasis authentication and tickets APIs.
+
+  **How to use**
+
+  - Select the _Development_ or _Production_ environment.
+      
+  - Set `baseURL` (e.g. `http://localhost:3000` locally).
+      
+  - Call `POST /auth/login` first, then copy `token` to `authToken` env var.
+variables:
+  baseURL: ""

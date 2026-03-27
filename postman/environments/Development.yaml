@@ -4,3 +4,7 @@ values:
     value: 'http://localhost:3000'
     enabled: true
     type: default
+  - key: authToken
+    value: ''
+    enabled: true
+    type: secret

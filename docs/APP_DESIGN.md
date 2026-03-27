@@ -30,6 +30,7 @@ Build a multi-user application that integrates with Jira so each signed-in user 
 #### Decision Summary
 
 - Chosen approach for assignment MVP: stateless backend authentication using Jira email + Jira API token.
+- User first creates a Jira API token in Atlassian settings.
 - User authenticates directly against Jira via our backend (`/auth/login` pre-flight call to Jira `/rest/api/3/myself`).
 - On successful validation, backend issues a short-lived, signed token that encapsulates Jira credentials for follow-up requests.
 - Backend remains stateless: no server-side session store and no user database for auth state in this phase.
@@ -40,7 +41,8 @@ Build a multi-user application that integrates with Jira so each signed-in user 
 This is the final flow agreed in the Gemini discussion for the question about skipping pre-selected project identification.
 
 0. **User preparation (external)**  
-   User creates a Jira API token in Atlassian settings and notes one or more Jira project keys.
+   User creates a Jira API token in Atlassian settings. This is done in https://id.atlassian.com/manage-profile/security/api-tokens.
+   I created a 1y Jira API token.
 
 1. **Authentication and token exchange (`POST /auth/login`)**  
    Request includes `email` and `jiraApiToken` in its body.

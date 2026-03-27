@@ -4,3 +4,7 @@ values:
     value: ''
     enabled: true
     type: default
+  - key: authToken
+    value: ''
+    enabled: true
+    type: secret
