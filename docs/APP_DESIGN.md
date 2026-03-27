@@ -42,7 +42,7 @@ This is the final flow agreed in the Gemini discussion for the question about sk
 
 0. **User preparation (external)**  
    User creates a Jira API token in Atlassian settings. This is done in https://id.atlassian.com/manage-profile/security/api-tokens.
-   I created a 1y Jira API token.
+   I created a 1y Jira API token, which should be used by client (i.e. Postman requests here) in the request body. I kept the JIRA_BASE_URL in the local .zshrc file. These should be used for the /auth/login API.
 
 1. **Authentication and token exchange (`POST /auth/login`)**  
    Request includes `email` and `jiraApiToken` in its body.
