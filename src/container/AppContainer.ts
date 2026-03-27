@@ -8,6 +8,7 @@ import { ApiRouterRegistry, RouteRegistration } from '../routes/index';
 import { TicketsRoutes } from '../routes/tickets';
 import { AuthService } from '../services/authService';
 import { CreateTicketService } from '../services/createTicketService';
+import { HttpServer } from '../services/httpServer';
 import { JiraGateway } from '../services/jiraGateway';
 import { JoseProvider } from '../services/joseProvider';
 import { RecentTicketsService } from '../services/recentTicketsService';
@@ -15,6 +16,7 @@ import { RecentTicketsService } from '../services/recentTicketsService';
 export class AppContainer {
   private authService: AuthService;
   private joseProvider: JoseProvider;
+  private httpServer: HttpServer;
   private asyncRouteAdapter: AsyncRouteAdapter;
   private authController: AuthController;
   private ticketsController: TicketsController;
@@ -29,12 +31,13 @@ export class AppContainer {
 
   constructor() {
     this.joseProvider = new JoseProvider();
-    this.authService = new AuthService(this.joseProvider);
+    this.httpServer = new HttpServer();
+    this.authService = new AuthService(this.joseProvider, this.httpServer);
     this.asyncRouteAdapter = new AsyncRouteAdapter();
     this.authController = new AuthController(this.authService);
-    this.jiraGateway = new JiraGateway();
-    this.createTicketService = new CreateTicketService(this.jiraGateway);
-    this.recentTicketsService = new RecentTicketsService(this.jiraGateway);
+    this.jiraGateway = new JiraGateway(this.httpServer);
+    this.createTicketService = new CreateTicketService(this.jiraGateway, this.httpServer);
+    this.recentTicketsService = new RecentTicketsService(this.jiraGateway, this.httpServer);
     this.authRequestContext = new AuthRequestContext();
     this.ticketsController = new TicketsController(
       this.createTicketService,

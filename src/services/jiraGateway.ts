@@ -2,8 +2,11 @@ import { HttpStatusConstants } from '../constants/HttpStatusConstants';
 import { JiraConstants } from '../constants/JiraConstants';
 import { AuthenticatedUser } from '../interfaces/auth';
 import { createHttpError } from '../middleware/errorHandlers/createHttpError';
+import { HttpServer } from './httpServer';
 
 export class JiraGateway {
+  constructor(private httpServer: HttpServer) {}
+
   public buildBasicAuth(authUser: AuthenticatedUser): string {
     return Buffer.from(`${authUser.email}:${authUser.jiraApiToken}`).toString('base64');
   }
@@ -38,14 +41,11 @@ export class JiraGateway {
     basicAuthValue: string,
     projectKey: string
   ): Promise<void> {
-    const response = await fetch(
+    const response = await this.httpServer.get(
       `${jiraBaseUrl}${JiraConstants.JIRA_API_PATH_PROJECT}/${encodeURIComponent(projectKey)}`,
       {
-        method: 'GET',
-        headers: {
-          Authorization: `Basic ${basicAuthValue}`,
-          Accept: 'application/json',
-        },
+        Authorization: `Basic ${basicAuthValue}`,
+        Accept: 'application/json',
       }
     );
 

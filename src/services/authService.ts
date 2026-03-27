@@ -10,9 +10,13 @@ import {
   JoseProviderContract,
   LoginResult,
 } from '../interfaces/auth';
+import { HttpServer } from './httpServer';
 
 export class AuthService {
-  constructor(private joseProvider: JoseProviderContract) {}
+  constructor(
+    private joseProvider: JoseProviderContract,
+    private httpServer: HttpServer
+  ) {}
 
   public async loginWithJira(input: JiraLoginInput): Promise<LoginResult> {
     const jose = await this.joseProvider.getJose();
@@ -110,12 +114,9 @@ export class AuthService {
 
   private async validateJiraCredentials(input: JiraLoginInput): Promise<void> {
     const basicAuthValue = Buffer.from(`${input.email}:${input.jiraApiToken}`).toString('base64');
-    const response = await fetch(this.getJiraMyselfUrl(), {
-      method: 'GET',
-      headers: {
-        Authorization: `Basic ${basicAuthValue}`,
-        Accept: 'application/json',
-      },
+    const response = await this.httpServer.get(this.getJiraMyselfUrl(), {
+      Authorization: `Basic ${basicAuthValue}`,
+      Accept: 'application/json',
     });
 
     if (

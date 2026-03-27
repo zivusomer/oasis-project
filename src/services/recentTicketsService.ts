@@ -7,10 +7,14 @@ import {
   RecentTicketsResult,
 } from '../interfaces/tickets';
 import { createHttpError } from '../middleware/errorHandlers/createHttpError';
+import { HttpServer } from './httpServer';
 import { JiraGateway } from './jiraGateway';
 
 export class RecentTicketsService {
-  constructor(private jiraGateway: JiraGateway) {}
+  constructor(
+    private jiraGateway: JiraGateway,
+    private httpServer: HttpServer
+  ) {}
 
   public async getRecentTickets(input: RecentTicketsInput): Promise<RecentTicketsResult> {
     const basicAuthValue = this.jiraGateway.buildBasicAuth(input.authUser);
@@ -21,12 +25,9 @@ export class RecentTicketsService {
     const searchUrl = `${jiraBaseUrl}${JiraConstants.JIRA_API_PATH_SEARCH}?jql=${encodeURIComponent(
       jql
     )}&maxResults=${JiraConstants.JIRA_MAX_RECENT_RESULTS}&fields=${JiraConstants.JIRA_RECENT_FIELDS}`;
-    const response = await fetch(searchUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Basic ${basicAuthValue}`,
-        Accept: 'application/json',
-      },
+    const response = await this.httpServer.get(searchUrl, {
+      Authorization: `Basic ${basicAuthValue}`,
+      Accept: 'application/json',
     });
 
     this.jiraGateway.ensureValidCredentials(response);

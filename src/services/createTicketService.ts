@@ -6,24 +6,23 @@ import {
   JiraIssueCreateResponse,
 } from '../interfaces/tickets';
 import { createHttpError } from '../middleware/errorHandlers/createHttpError';
+import { HttpServer } from './httpServer';
 import { JiraGateway } from './jiraGateway';
 
 export class CreateTicketService {
-  constructor(private jiraGateway: JiraGateway) {}
+  constructor(
+    private jiraGateway: JiraGateway,
+    private httpServer: HttpServer
+  ) {}
 
   public async createTicket(input: CreateTicketInput): Promise<CreateTicketResult> {
     const basicAuthValue = this.jiraGateway.buildBasicAuth(input.authUser);
     const jiraBaseUrl = this.jiraGateway.getJiraBaseUrl();
     await this.jiraGateway.validateProjectKey(jiraBaseUrl, basicAuthValue, input.projectKey);
 
-    const response = await fetch(`${jiraBaseUrl}${JiraConstants.JIRA_API_PATH_ISSUE}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${basicAuthValue}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const response = await this.httpServer.postJson(
+      `${jiraBaseUrl}${JiraConstants.JIRA_API_PATH_ISSUE}`,
+      {
         fields: {
           project: { key: input.projectKey },
           summary: input.title,
@@ -40,8 +39,12 @@ export class CreateTicketService {
           issuetype: { name: input.issueTypeName },
           labels: [JiraConstants.JIRA_LABEL_APP_CREATED],
         },
-      }),
-    });
+      },
+      {
+        Authorization: `Basic ${basicAuthValue}`,
+        Accept: 'application/json',
+      }
+    );
 
     this.jiraGateway.ensureValidCredentials(response);
 
