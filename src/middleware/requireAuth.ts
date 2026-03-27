@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthConstants } from '../constants/AuthConstants';
+import { HttpStatusConstants } from '../constants/HttpStatusConstants';
 import { createHttpError } from './errorHandler';
 import { AuthService } from '../services/authService';
 
@@ -12,7 +14,7 @@ export class AuthGuard {
   public requireAuth(req: Request, _res: Response, next: NextFunction): void {
     let token = '';
     try {
-      token = this.extractBearerToken(req.header('authorization'));
+      token = this.extractBearerToken(req.header(AuthConstants.AUTH_HEADER_NAME));
     } catch (error) {
       next(error);
       return;
@@ -29,14 +31,20 @@ export class AuthGuard {
 
   private extractBearerToken(authorizationHeader?: string): string {
     if (!authorizationHeader) {
-      throw createHttpError(401, 'Missing Authorization header', { code: 'MISSING_AUTH_HEADER' });
+      throw createHttpError(HttpStatusConstants.UNAUTHORIZED, 'Missing Authorization header', {
+        code: 'MISSING_AUTH_HEADER',
+      });
     }
 
     const [scheme, token] = authorizationHeader.split(' ');
-    if (scheme !== 'Bearer' || !token) {
-      throw createHttpError(401, 'Authorization header must be Bearer token', {
-        code: 'INVALID_AUTH_HEADER',
-      });
+    if (scheme !== AuthConstants.AUTH_HEADER_SCHEME || !token) {
+      throw createHttpError(
+        HttpStatusConstants.UNAUTHORIZED,
+        'Authorization header must be Bearer token',
+        {
+          code: 'INVALID_AUTH_HEADER',
+        }
+      );
     }
     return token;
   }

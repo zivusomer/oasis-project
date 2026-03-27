@@ -1,4 +1,7 @@
 import { createHash, randomUUID } from 'crypto';
+import { AuthConstants } from '../constants/AuthConstants';
+import { HttpStatusConstants } from '../constants/HttpStatusConstants';
+import { JiraConstants } from '../constants/JiraConstants';
 import { createHttpError } from '../middleware/errorHandler';
 import {
   AuthenticatedUser,
@@ -6,8 +9,6 @@ import {
   JiraLoginInput,
   LoginResult,
 } from '../interfaces/auth';
-
-const DEFAULT_TOKEN_TTL_SECONDS = 60 * 60; // 1 hour
 
 export interface EncryptJWTLike {
   setProtectedHeader(header: Record<string, unknown>): EncryptJWTLike;
@@ -41,7 +42,11 @@ export class AuthService {
     };
 
     const token = await new jose.EncryptJWT(payload)
-      .setProtectedHeader({ alg: 'dir', enc: 'A256GCM', typ: 'JWT' })
+      .setProtectedHeader({
+        alg: AuthConstants.AUTH_TOKEN_ALGORITHM,
+        enc: AuthConstants.AUTH_TOKEN_ENCRYPTION,
+        typ: AuthConstants.AUTH_TOKEN_TYPE_HEADER,
+      })
       .setIssuedAt(nowEpochSeconds)
       .setNotBefore(nowEpochSeconds)
       .setExpirationTime(nowEpochSeconds + expiresInSeconds)
@@ -59,19 +64,21 @@ export class AuthService {
     try {
       const jose = await this.loadJose();
       const decrypted = await jose.jwtDecrypt(token, this.getAuthSecret(), {
-        clockTolerance: 5,
+        clockTolerance: AuthConstants.AUTH_CLOCK_TOLERANCE_SECONDS,
       });
       const email = decrypted.payload.email;
       const jiraApiToken = decrypted.payload.jiraApiToken;
       if (typeof email !== 'string' || typeof jiraApiToken !== 'string') {
-        throw createHttpError(401, 'Invalid auth token payload', { code: 'INVALID_AUTH_TOKEN' });
+        throw createHttpError(HttpStatusConstants.UNAUTHORIZED, 'Invalid auth token payload', {
+          code: 'INVALID_AUTH_TOKEN',
+        });
       }
       return { email, jiraApiToken };
     } catch (error) {
       if (error instanceof Error) {
         const code = Reflect.get(error, 'code');
         if (typeof code === 'string' && code.startsWith('ERR_')) {
-          throw createHttpError(401, 'Invalid or expired auth token', {
+          throw createHttpError(HttpStatusConstants.UNAUTHORIZED, 'Invalid or expired auth token', {
             code: 'INVALID_AUTH_TOKEN',
           });
         }
@@ -87,35 +94,39 @@ export class AuthService {
   }
 
   private getAuthSecret(): Uint8Array {
-    const secret = process.env.AUTH_TOKEN_SECRET;
-    if (!secret || secret.trim().length < 32) {
-      throw createHttpError(500, 'AUTH_TOKEN_SECRET must be set with at least 32 characters', {
-        code: 'CONFIGURATION_ERROR',
-      });
+    const secret = process.env[AuthConstants.AUTH_TOKEN_SECRET_ENV];
+    if (!secret || secret.trim().length < AuthConstants.AUTH_TOKEN_MIN_SECRET_LENGTH) {
+      throw createHttpError(
+        HttpStatusConstants.INTERNAL_SERVER_ERROR,
+        'AUTH_TOKEN_SECRET must be set with at least 32 characters',
+        {
+          code: 'CONFIGURATION_ERROR',
+        }
+      );
     }
     return createHash('sha256').update(secret, 'utf8').digest();
   }
 
   private getTokenTtlSeconds(): number {
-    const ttlFromEnv = Number(process.env.AUTH_TOKEN_TTL_SECONDS);
+    const ttlFromEnv = Number(process.env[AuthConstants.AUTH_TOKEN_TTL_ENV]);
     if (Number.isFinite(ttlFromEnv) && ttlFromEnv > 0) {
       return ttlFromEnv;
     }
-    return DEFAULT_TOKEN_TTL_SECONDS;
+    return AuthConstants.DEFAULT_TOKEN_TTL_SECONDS;
   }
 
   private getJiraMyselfUrl(): string {
-    const baseUrl = process.env.JIRA_BASE_URL;
+    const baseUrl = process.env[JiraConstants.JIRA_BASE_URL_ENV];
     if (!baseUrl || baseUrl.trim().length === 0) {
       throw createHttpError(
-        500,
+        HttpStatusConstants.INTERNAL_SERVER_ERROR,
         'JIRA_BASE_URL must be set (e.g. https://your-domain.atlassian.net)',
         {
           code: 'CONFIGURATION_ERROR',
         }
       );
     }
-    return `${baseUrl.replace(/\/$/, '')}/rest/api/3/myself`;
+    return `${baseUrl.replace(/\/$/, '')}${JiraConstants.JIRA_API_PATH_MYSELF}`;
   }
 
   private async validateJiraCredentials(input: JiraLoginInput): Promise<void> {
@@ -128,15 +139,24 @@ export class AuthService {
       },
     });
 
-    if (response.status === 401 || response.status === 403) {
-      throw createHttpError(401, 'Invalid Jira credentials', { code: 'INVALID_JIRA_CREDENTIALS' });
+    if (
+      response.status === HttpStatusConstants.UNAUTHORIZED ||
+      response.status === HttpStatusConstants.FORBIDDEN
+    ) {
+      throw createHttpError(HttpStatusConstants.UNAUTHORIZED, 'Invalid Jira credentials', {
+        code: 'INVALID_JIRA_CREDENTIALS',
+      });
     }
 
     if (!response.ok) {
-      throw createHttpError(502, 'Failed to validate Jira credentials', {
-        code: 'JIRA_VALIDATION_FAILED',
-        details: { status: response.status },
-      });
+      throw createHttpError(
+        HttpStatusConstants.BAD_GATEWAY,
+        'Failed to validate Jira credentials',
+        {
+          code: 'JIRA_VALIDATION_FAILED',
+          details: { status: response.status },
+        }
+      );
     }
   }
 }

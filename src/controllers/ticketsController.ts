@@ -1,3 +1,5 @@
+import { HttpStatusConstants } from '../constants/HttpStatusConstants';
+import { JiraConstants } from '../constants/JiraConstants';
 import { Request, Response } from 'express';
 import { createHttpError } from '../middleware/errorHandler';
 import { AuthenticatedUser } from '../interfaces/auth';
@@ -8,27 +10,31 @@ import {
 } from '../interfaces/tickets';
 
 export class TicketsController {
-  private static readonly APP_CREATED_LABEL = 'identityhub-finding';
-
   public async createTicket(req: Request, res: Response): Promise<void> {
     const authUser = this.getAuthenticatedUser(req);
     const projectKey = req.body.projectKey;
     const title = req.body.title;
     const description = req.body.description;
     const issueTypeName =
-      req.body.issueType && req.body.issueType.trim() ? req.body.issueType.trim() : 'Task';
+      req.body.issueType && req.body.issueType.trim()
+        ? req.body.issueType.trim()
+        : JiraConstants.JIRA_DEFAULT_ISSUE_TYPE;
 
     if (!projectKey || !title || !description) {
-      throw createHttpError(400, 'projectKey, title, and description are required', {
-        code: 'VALIDATION_ERROR',
-      });
+      throw createHttpError(
+        HttpStatusConstants.BAD_REQUEST,
+        'projectKey, title, and description are required',
+        {
+          code: 'VALIDATION_ERROR',
+        }
+      );
     }
 
     const basicAuthValue = this.buildBasicAuth(authUser);
     const jiraBaseUrl = this.getJiraBaseUrl();
     await this.validateProjectKey(jiraBaseUrl, basicAuthValue, projectKey);
 
-    const response = await fetch(`${jiraBaseUrl}/rest/api/3/issue`, {
+    const response = await fetch(`${jiraBaseUrl}${JiraConstants.JIRA_API_PATH_ISSUE}`, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${basicAuthValue}`,
@@ -50,7 +56,7 @@ export class TicketsController {
             ],
           },
           issuetype: { name: issueTypeName },
-          labels: ['identityhub-finding'],
+          labels: [JiraConstants.JIRA_LABEL_APP_CREATED],
         },
       }),
     });
@@ -59,9 +65,11 @@ export class TicketsController {
 
     if (!response.ok) {
       const jiraError = await this.readJiraError(response);
-      const isClientRequestError = response.status >= 400 && response.status < 500;
+      const isClientRequestError =
+        response.status >= HttpStatusConstants.BAD_REQUEST &&
+        response.status < HttpStatusConstants.INTERNAL_SERVER_ERROR;
       throw createHttpError(
-        isClientRequestError ? 400 : 502,
+        isClientRequestError ? HttpStatusConstants.BAD_REQUEST : HttpStatusConstants.BAD_GATEWAY,
         isClientRequestError ? 'Invalid Jira issue payload' : 'Failed to create Jira issue',
         {
           code: isClientRequestError ? 'JIRA_INVALID_ISSUE_REQUEST' : 'JIRA_CREATE_ISSUE_FAILED',
@@ -72,9 +80,13 @@ export class TicketsController {
 
     const created = await this.parseIssueCreateResponse(response);
     if (!created.key) {
-      throw createHttpError(502, 'Jira issue creation response missing issue key', {
-        code: 'JIRA_INVALID_RESPONSE',
-      });
+      throw createHttpError(
+        HttpStatusConstants.BAD_GATEWAY,
+        'Jira issue creation response missing issue key',
+        {
+          code: 'JIRA_INVALID_RESPONSE',
+        }
+      );
     }
 
     res.status(201).json({
@@ -90,19 +102,23 @@ export class TicketsController {
     const dynamicProjectKey = Reflect.get(req.query, 'projectKey');
     const projectKey = typeof dynamicProjectKey === 'string' ? dynamicProjectKey.trim() : '';
     if (!projectKey) {
-      throw createHttpError(400, 'projectKey query parameter is required', {
-        code: 'VALIDATION_ERROR',
-      });
+      throw createHttpError(
+        HttpStatusConstants.BAD_REQUEST,
+        'projectKey query parameter is required',
+        {
+          code: 'VALIDATION_ERROR',
+        }
+      );
     }
 
     const basicAuthValue = this.buildBasicAuth(authUser);
     const jiraBaseUrl = this.getJiraBaseUrl();
     await this.validateProjectKey(jiraBaseUrl, basicAuthValue, projectKey);
 
-    const jql = `project = "${projectKey}" AND labels = "${TicketsController.APP_CREATED_LABEL}" ORDER BY created DESC`;
-    const searchUrl = `${jiraBaseUrl}/rest/api/3/search/jql?jql=${encodeURIComponent(
+    const jql = `project = "${projectKey}" AND labels = "${JiraConstants.JIRA_LABEL_APP_CREATED}" ORDER BY created DESC`;
+    const searchUrl = `${jiraBaseUrl}${JiraConstants.JIRA_API_PATH_SEARCH}?jql=${encodeURIComponent(
       jql
-    )}&maxResults=10&fields=summary,created,labels`;
+    )}&maxResults=${JiraConstants.JIRA_MAX_RECENT_RESULTS}&fields=${JiraConstants.JIRA_RECENT_FIELDS}`;
     const response = await fetch(searchUrl, {
       method: 'GET',
       headers: {
@@ -115,9 +131,11 @@ export class TicketsController {
 
     if (!response.ok) {
       const jiraError = await this.readJiraError(response);
-      const isClientRequestError = response.status >= 400 && response.status < 500;
+      const isClientRequestError =
+        response.status >= HttpStatusConstants.BAD_REQUEST &&
+        response.status < HttpStatusConstants.INTERNAL_SERVER_ERROR;
       throw createHttpError(
-        isClientRequestError ? 400 : 502,
+        isClientRequestError ? HttpStatusConstants.BAD_REQUEST : HttpStatusConstants.BAD_GATEWAY,
         isClientRequestError
           ? 'Invalid recent tickets query'
           : 'Failed to fetch recent Jira tickets',
@@ -150,13 +168,25 @@ export class TicketsController {
   private getAuthenticatedUser(req: Request): AuthenticatedUser {
     const authUser = Reflect.get(req, 'authUser');
     if (!authUser || typeof authUser !== 'object') {
-      throw createHttpError(401, 'Missing authenticated user context', { code: 'UNAUTHORIZED' });
+      throw createHttpError(
+        HttpStatusConstants.UNAUTHORIZED,
+        'Missing authenticated user context',
+        {
+          code: 'UNAUTHORIZED',
+        }
+      );
     }
 
     const email = Reflect.get(authUser, 'email');
     const jiraApiToken = Reflect.get(authUser, 'jiraApiToken');
     if (typeof email !== 'string' || typeof jiraApiToken !== 'string') {
-      throw createHttpError(401, 'Missing authenticated user context', { code: 'UNAUTHORIZED' });
+      throw createHttpError(
+        HttpStatusConstants.UNAUTHORIZED,
+        'Missing authenticated user context',
+        {
+          code: 'UNAUTHORIZED',
+        }
+      );
     }
     return { email, jiraApiToken };
   }
@@ -166,8 +196,13 @@ export class TicketsController {
   }
 
   private throwIfInvalidJiraCredentials(response: globalThis.Response): void {
-    if (response.status === 401 || response.status === 403) {
-      throw createHttpError(401, 'Invalid Jira credentials', { code: 'INVALID_JIRA_CREDENTIALS' });
+    if (
+      response.status === HttpStatusConstants.UNAUTHORIZED ||
+      response.status === HttpStatusConstants.FORBIDDEN
+    ) {
+      throw createHttpError(HttpStatusConstants.UNAUTHORIZED, 'Invalid Jira credentials', {
+        code: 'INVALID_JIRA_CREDENTIALS',
+      });
     }
   }
 
@@ -177,7 +212,7 @@ export class TicketsController {
     projectKey: string
   ): Promise<void> {
     const response = await fetch(
-      `${jiraBaseUrl}/rest/api/3/project/${encodeURIComponent(projectKey)}`,
+      `${jiraBaseUrl}${JiraConstants.JIRA_API_PATH_PROJECT}/${encodeURIComponent(projectKey)}`,
       {
         method: 'GET',
         headers: {
@@ -189,27 +224,35 @@ export class TicketsController {
 
     this.throwIfInvalidJiraCredentials(response);
 
-    if (response.status === 404) {
-      throw createHttpError(400, `Invalid Jira project key: ${projectKey}`, {
-        code: 'INVALID_PROJECT_KEY',
-      });
+    if (response.status === HttpStatusConstants.NOT_FOUND) {
+      throw createHttpError(
+        HttpStatusConstants.BAD_REQUEST,
+        `Invalid Jira project key: ${projectKey}`,
+        {
+          code: 'INVALID_PROJECT_KEY',
+        }
+      );
     }
 
     if (!response.ok) {
-      throw createHttpError(502, 'Failed to validate Jira project key', {
-        code: 'JIRA_PROJECT_VALIDATION_FAILED',
-        details: {
-          status: response.status,
-        },
-      });
+      throw createHttpError(
+        HttpStatusConstants.BAD_GATEWAY,
+        'Failed to validate Jira project key',
+        {
+          code: 'JIRA_PROJECT_VALIDATION_FAILED',
+          details: {
+            status: response.status,
+          },
+        }
+      );
     }
   }
 
   private getJiraBaseUrl(): string {
-    const baseUrl = process.env.JIRA_BASE_URL;
+    const baseUrl = process.env[JiraConstants.JIRA_BASE_URL_ENV];
     if (!baseUrl || baseUrl.trim().length === 0) {
       throw createHttpError(
-        500,
+        HttpStatusConstants.INTERNAL_SERVER_ERROR,
         'JIRA_BASE_URL must be set (e.g. https://your-domain.atlassian.net)',
         {
           code: 'CONFIGURATION_ERROR',
@@ -256,6 +299,6 @@ export class TicketsController {
   private isAppCreatedIssue(issue: JiraIssueSearchItem): boolean {
     const labels = issue.fields?.labels;
     if (!labels) return false;
-    return labels.includes(TicketsController.APP_CREATED_LABEL);
+    return labels.includes(JiraConstants.JIRA_LABEL_APP_CREATED);
   }
 }

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { HttpStatusConstants } from '../constants/HttpStatusConstants';
 import { HttpErrorContract, HttpErrorOptions } from '../interfaces/http';
 
 export class AppHttpError extends Error implements HttpErrorContract {
@@ -28,12 +29,15 @@ export class ErrorHandler {
     const isProduction = process.env.NODE_ENV === 'production';
     const httpError = this.toHttpError(error);
 
-    if (statusCode >= 500) {
+    if (statusCode >= HttpStatusConstants.INTERNAL_SERVER_ERROR) {
       console.error(error);
     }
 
     const payload: Record<string, unknown> = {
-      error: statusCode >= 500 && isProduction ? 'Internal server error' : httpError.message,
+      error:
+        statusCode >= HttpStatusConstants.INTERNAL_SERVER_ERROR && isProduction
+          ? 'Internal server error'
+          : httpError.message,
       code: httpError.code,
       details: httpError.details,
     };
@@ -49,12 +53,12 @@ export class ErrorHandler {
     const httpError = this.toHttpError(error);
     if (
       typeof httpError.statusCode === 'number' &&
-      httpError.statusCode >= 400 &&
+      httpError.statusCode >= HttpStatusConstants.BAD_REQUEST &&
       httpError.statusCode <= 599
     ) {
       return httpError.statusCode;
     }
-    return 500;
+    return HttpStatusConstants.INTERNAL_SERVER_ERROR;
   }
 
   private toHttpError(error: Error): HttpErrorContract {
@@ -65,7 +69,10 @@ export class ErrorHandler {
     const dynamicCode = Reflect.get(error, 'code');
     const dynamicDetails = Reflect.get(error, 'details');
 
-    const fallbackError = new AppHttpError(500, error.message || 'Unexpected error');
+    const fallbackError = new AppHttpError(
+      HttpStatusConstants.INTERNAL_SERVER_ERROR,
+      error.message || 'Unexpected error'
+    );
     if (typeof dynamicStatusCode === 'number') {
       fallbackError.statusCode = dynamicStatusCode;
     }

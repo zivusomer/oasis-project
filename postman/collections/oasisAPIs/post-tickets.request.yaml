@@ -10,8 +10,8 @@ body:
   content: |-
     {
       "projectKey": "KAN",
-      "title": "Newer finding after first",
-      "description": "Newer finding description",
+      "title": "Newer finding after second",
+      "description": "Newer finding description second",
       "issueType": "Task"
     }
 auth:
