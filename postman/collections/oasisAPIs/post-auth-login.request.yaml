@@ -1,4 +1,4 @@
-$kind: request
+$kind: http-request
 name: POST /auth/login
 method: POST
 url: '{{baseURL}}/auth/login'

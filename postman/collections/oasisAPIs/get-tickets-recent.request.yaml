@@ -1,4 +1,4 @@
-$kind: request
+$kind: http-request
 name: GET /tickets/recent
 method: GET
 url: '{{baseURL}}/tickets/recent?projectKey=SEC'

@@ -1,4 +1,4 @@
-$kind: request
+$kind: http-request
 name: POST /tickets
 method: POST
 url: '{{baseURL}}/tickets'
