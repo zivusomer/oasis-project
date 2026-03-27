@@ -6,6 +6,9 @@ workspace:
 cloudResources:
   environments:
     ../postman/environments/Production.yaml: 4d03d1d1-140f-552f-af93-95dce23c879d
+  collections:
+    ../postman/collections/Oasis: 53318054-36d84b5e-3f6a-4e3c-9a43-edeaee53db74
+    ../postman/collections/Oasis APIs: 53318054-98431519-f10b-44c1-bc12-dd8978dde0cf
 
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:
