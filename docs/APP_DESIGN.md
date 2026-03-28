@@ -48,7 +48,7 @@ Build a multi-user application that integrates with Jira so each signed-in user 
 
 2. **Create finding ticket (`POST /tickets`)**  
    Request includes Bearer token and payload with `projectKey`, `title`, and `description`.  
-   Backend extracts Jira credentials from app token, creates issue in Jira, and force-adds app label (for example `identityhub-finding`).
+   Backend extracts Jira credentials from app token, creates issue in Jira, and adds app label (for example `identityhub-finding`).
 
 3. **Fetch recent tickets (`GET /tickets/recent`)**  
    Request includes Bearer token and `projectKey` as query param.  
@@ -69,7 +69,7 @@ Build a multi-user application that integrates with Jira so each signed-in user 
 - **Stateful vs stateless backend**: stateful sessions/DB improve revocation and lifecycle control; stateless reduces setup and operational complexity.
 - **Where to keep Jira credentials**: storing credentials server-side is safer for revocation/control; self-contained token is simpler but needs strict security controls.
 - **How to support recent tickets without DB**: use Jira-side metadata (label) + JQL query instead of local persistence.
-- **Simplicity vs heavier recent-ticket fetch**: stateless design keeps implementation simple, but `GET /tickets/recent` will be heavier because each call depends on Jira search/JQL work instead of a local cached or persisted history table.
+- **Simplicity vs heavier recent-ticket fetch**: stateless design keeps implementation simple, but `GET /tickets/recent` will be heavier because each call depends on Jira search/JQL work instead of a locally cached or persisted history table.
 - **Logout semantics**: app logout is client-side token deletion; Jira API tokens cannot be revoked programmatically by a normal integration.
 
 #### Agreed Backend-First Flow (No Frontend Assumptions)
@@ -118,7 +118,6 @@ This section captures implementation and structure changes completed after the o
 - The backend now follows a class-based, dependency-injected architecture end-to-end (container + route/controller/service split).
 - `AppContainer` acts as the composition root and wires singleton-like instances once on startup.
 - `ApplicationRunner` owns startup lifecycle and process-level crash guards.
-- Constants were extracted from mixed files into domain-specific constants files.
 
 ### Auth and Token Handling
 
@@ -148,12 +147,11 @@ This section captures implementation and structure changes completed after the o
 
 ### Middleware and Error Handling Structure
 
-- Error-related middleware was moved into a dedicated subdirectory:
+- Error-related middleware was moved into a dedicated subdirectory, encapsulated inside `AppErrorHandler` static methods:
   - `src/middleware/errorHandlers/AppHttpError.ts`
   - `src/middleware/errorHandlers/appErrorHandler.ts`
   - `src/middleware/errorHandlers/createHttpError.ts`
   - `src/middleware/errorHandlers/errorHandler.ts`
-- The old module-level binding pattern was removed; singleton exposure is encapsulated inside `AppErrorHandler` static methods.
 - Auth middleware is now grouped in:
   - `src/middleware/auth/authGuard.ts`
   - `src/middleware/auth/authRequestContext.ts`
