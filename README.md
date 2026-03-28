@@ -1,70 +1,64 @@
-# README
+# Oasis Project
 
-Node.js API built with TypeScript, Express, and Gulp. Uses a middleware pattern for all API routes.
-Product and architecture design notes: `docs/APP_DESIGN.md`
+Backend API (TypeScript/Express) + Frontend UI (React/Vite) for Jira NHI finding tickets.
+Design and architecture notes: `docs/APP_DESIGN.md`
 
-## Compile and run
+## Installations Required
 
-| Command | Description |
-|--------|-------------|
-| `gulp` or `npm run gulp` | Compile TypeScript (clean + build from `src/` to `dist/`) |
-| `npm start` | Compile with Gulp, then start the server |
-| `npm run dev` | Run with ts-node and auto-restart on file changes (no Gulp) |
-| `npm run build` | Compile only (no clean) |
-| `npm run clean` | Remove `dist/` only |
-| `npm test` | Run API tests (Node test runner + supertest) |
-| `npm run frontend:dev` | Run React frontend (Vite) |
-| `npm run frontend:build` | Build React frontend |
-| `npm run frontend:preview` | Preview built React frontend |
-| `npm run lint` | Run ESLint (with `--fix`) and Prettier on `src` and `test` (lint + format) |
+- Node.js 18+ (20+ recommended)
+- npm (bundled with Node)
+- Postman desktop app (for backend-only manual flow)
 
-## Frontend (React)
+## Setup
 
-React UI lives under `frontend/` and implements:
-- Jira login (`POST /auth/login`)
-- create NHI finding ticket (`POST /tickets`)
-- recent tickets view (`GET /tickets/recent`) with clickable Jira links
-- in-UI token handling: token is received on login and then sent automatically as `Authorization: Bearer <token>` for ticket APIs
+1. From repo root:
+   - `npm install`
+   - `npm --prefix frontend install`
 
-Install frontend deps once:
+2. Create a one-time Jira API token in Atlassian settings: https://id.atlassian.com/manage-profile/security/api-tokens.
 
-`npm --prefix frontend install`
+3. Set backend env vars in a local shell file (for example `~/.zshrc`) and keep them out of git.
+   - `JIRA_BASE_URL` (example: `https://your-domain.atlassian.net`)
+   - `AUTH_TOKEN_SECRET` (minimum 32 chars)
 
-Run backend + frontend:
+## Backend execution (locally)
 
-1. `npm run dev`
-2. `npm run frontend:dev`
+1. `npm start`
+2. Call server at `http://localhost:3000` (using the Postman info and flow described below).
 
-Vite proxies `/auth` and `/tickets` to `http://localhost:3000` in development.
+### Postman Info
 
-Open the frontend in browser at:
+Postman files in this repo:
 
-- [http://localhost:5173](http://localhost:5173)
+- collection: `postman/collections/oasisAPIs`
+- environments: `postman/environments/Development.yaml`, `postman/environments/Production.yaml`
 
-### Jira API token reminder
+Development environment values:
 
-Create Jira API token in Atlassian account security page:
+- `baseURL` = `http://localhost:3000`
+- `jiraEmail` = your Jira email
+- `jiraApiToken` = your Jira API token
+- `authToken` = token from login response
 
-- [https://id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+Manual backend flow order:
 
-### Token behavior in this app
+1. `POST /auth/login`
+2. Copy `token` into `authToken`
+3. `POST /tickets`
+4. `GET /tickets/recent?projectKey=...`
 
-- Login endpoint returns the app token in response body.
-- Frontend stores that token in local component state and sends it automatically in `Authorization` headers for `POST /tickets` and `GET /tickets/recent`.
-- There is no explicit backend token revocation endpoint in current stateless design.
-- To invalidate immediately in practice:
-  - rotate/change `AUTH_TOKEN_SECRET` server-side (invalidates all issued app tokens), or
-  - wait for token TTL expiration, or
-  - revoke Jira API token in Atlassian settings (blocks future Jira access).
+## E2E With Frontend (locally)
 
+1. Start backend:
+   - `npm start`
+2. Start frontend:
+   - `npm run frontend:dev`
+3. Open in browser and enter API token from setup:
+   - [http://localhost:5173](http://localhost:5173)
 
+Frontend behavior:
 
-### E2E Operations Flow
-
-Postman requests in the postman directory of this repository can be used for the pure backend flow.
-
-Done manually in this order in Postman requests committed to this project:
-  1. `POST /auth/login`
-  2. token update into Postman Development environment `authToken`
-  3. `POST /tickets`
-  4. `GET /tickets/recent`
+- Login form calls `POST /auth/login`
+- Token from login response is stored in UI state
+- `POST /tickets` and `GET /tickets/recent` automatically send `Authorization: Bearer <token>`
+- If login fails, no token is set and protected calls fail as expected
