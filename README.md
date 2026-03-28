@@ -58,6 +58,9 @@ Open the frontend in browser at:
 
 - [http://localhost:5173](http://localhost:5173)
 
+See final result in:
+https://zivusomer.atlassian.net/jira/software/projects/KAN/boards/2
+
 ### Jira API token reminder
 
 Create Jira API token in Atlassian account security page:

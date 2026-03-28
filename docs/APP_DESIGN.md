@@ -229,3 +229,95 @@ This stage adds a browser UI on top of the existing stateless backend flow.
 - Frontend stack: React + Vite in `frontend/`.
 - Local dev URL is `http://localhost:5173`.
 - Vite proxies `/auth` and `/tickets` to backend `http://localhost:3000` in development.
+
+## E2E Flow Diagram
+
+```mermaid
+flowchart TD
+    U[User in React UI]
+    FE[Frontend App<br/>frontend/src/App.jsx]
+    AR[ApplicationRunner]
+    AC[AppContainer]
+    AF[AppFactory + Express App]
+    RR[ApiRouterRegistry]
+    AUTHR[AuthRoutes]
+    TR[TicketsRoutes]
+    AG[AuthGuard]
+    ARC[AuthRequestContext]
+    ACTRL[AuthController]
+    TCTRL[TicketsController]
+    AS[AuthService]
+    CTS[CreateTicketService]
+    RTS[RecentTicketsService]
+    JG[JiraGateway]
+    HS[HttpServer]
+    JP[JoseProvider]
+    EH[AppErrorHandler]
+    Jira[(Jira Cloud APIs)]
+
+    U --> FE
+    FE -->|POST /auth/login| AF
+    FE -->|POST /tickets<br/>Bearer token| AF
+    FE -->|GET /tickets/recent?projectKey=...<br/>Bearer token| AF
+
+    AR --> AC
+    AC --> RR
+    AC --> JP
+    AC --> HS
+    AC --> JG
+    AC --> AS
+    AC --> CTS
+    AC --> RTS
+    AC --> ACTRL
+    AC --> TCTRL
+    AC --> AG
+    AC --> ARC
+    AF --> RR
+    RR --> AUTHR
+    RR --> TR
+
+    AUTHR --> ACTRL
+    TR --> AG
+    TR --> TCTRL
+    TCTRL --> ARC
+
+    ACTRL --> AS
+    TCTRL --> CTS
+    TCTRL --> RTS
+
+    AS --> JP
+    AS --> HS
+    CTS --> JG
+    CTS --> HS
+    RTS --> JG
+    RTS --> HS
+    JG --> HS
+    HS --> Jira
+
+    AF --> EH
+```
+
+### How Components Interact
+
+1. **Startup composition**
+   - `ApplicationRunner` creates `AppContainer`, which wires all classes once (controllers, middleware, services, providers, gateways).
+   - `AppFactory` creates Express app and mounts routes from `ApiRouterRegistry`.
+
+2. **Login path (`POST /auth/login`)**
+   - Frontend submits Jira email + Jira API token.
+   - `AuthController` validates input and calls `AuthService`.
+   - `AuthService` uses `HttpServer` to validate Jira credentials (`/rest/api/3/myself`) and `JoseProvider` to issue encrypted/signed app token.
+   - Token returns to frontend and is used as Bearer auth for protected APIs.
+
+3. **Protected path (`POST /tickets`, `GET /tickets/recent`)**
+   - `AuthGuard` parses Bearer token, verifies it via `AuthService`, and stores user context on request.
+   - `TicketsController` reads authenticated user through `AuthRequestContext`, validates request fields, and delegates to ticket services.
+   - `CreateTicketService` / `RecentTicketsService` use `JiraGateway` + `HttpServer` to call Jira APIs.
+
+4. **Jira interaction abstraction**
+   - `HttpServer` centralizes outbound HTTP calls.
+   - `JiraGateway` centralizes Jira-specific shared logic (base URL, project validation, credential response checks, error parsing).
+
+5. **Error propagation**
+   - Any thrown/async errors flow to `AppErrorHandler` middleware.
+   - Error handler normalizes payloads, masks 5xx errors in production, and returns consistent JSON error responses.
