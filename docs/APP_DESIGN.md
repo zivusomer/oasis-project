@@ -118,6 +118,7 @@ This section captures implementation and structure changes completed after the o
 - The backend now follows a class-based, dependency-injected architecture end-to-end (container + route/controller/service split).
 - `AppContainer` acts as the composition root and wires singleton-like instances once on startup.
 - `ApplicationRunner` owns startup lifecycle and process-level crash guards.
+- Clear separation between Controllers handling HTTP concerns, and Services handling business logic. This is cleaner, easier to reuse, and more easily testable.
 
 ### Auth and Token Handling
 
