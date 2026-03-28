@@ -1,10 +1,7 @@
 # README
 
 Node.js API built with TypeScript, Express, and Gulp. Uses a middleware pattern for all API routes.
-
-## Documentation
-
-- Product and architecture design notes: `docs/APP_DESIGN.md`
+Product and architecture design notes: `docs/APP_DESIGN.md`
 
 ## Compile and run
 
@@ -20,20 +17,6 @@ Node.js API built with TypeScript, Express, and Gulp. Uses a middleware pattern 
 | `npm run frontend:build` | Build React frontend |
 | `npm run frontend:preview` | Preview built React frontend |
 | `npm run lint` | Run ESLint (with `--fix`) and Prettier on `src` and `test` (lint + format) |
-
-**Typical flow:** Run `gulp` to compile, then `npm start` to run the server. Or run `npm start` once (it compiles then starts).
-
-**Debugging (breakpoints):** Breakpoints only hit when the app is running under the debugger, not when you start it with `npm start` in the terminal.
-
-1. Stop the server if it’s running (`Ctrl+C`).
-2. Set a breakpoint in your code (e.g. in `src/routes/helloWorld.ts`).
-3. Press **F5** (or Run → Start Debugging) and choose **"Debug app (ts-node)"** so the app runs from TypeScript with the debugger attached.
-4. Wait until the console shows the server is up (e.g. "Server running at http://localhost:3000").
-5. In another terminal, send a request (e.g. `curl http://localhost:3000/hello-world`). Execution should stop on your breakpoint.
-
-Alternatively: run `npm start` (which uses `--inspect`), then **Run → Start Debugging** and choose **"Attach to Node"** so the debugger attaches to the already-running process; then trigger the request.
-
-Server listens on `http://localhost:3000` (or `PORT` env var).
 
 ## Frontend (React)
 
@@ -58,9 +41,6 @@ Open the frontend in browser at:
 
 - [http://localhost:5173](http://localhost:5173)
 
-See final result in:
-https://zivusomer.atlassian.net/jira/software/projects/KAN/boards/2
-
 ### Jira API token reminder
 
 Create Jira API token in Atlassian account security page:
@@ -77,6 +57,14 @@ Create Jira API token in Atlassian account security page:
   - wait for token TTL expiration, or
   - revoke Jira API token in Atlassian settings (blocks future Jira access).
 
-## Future improvements
 
-1. In-memory cache for GET /tickets that will be invalidated upon POST /tickets request.
+
+### E2E Operations Flow
+
+Postman requests in the postman directory of this repository can be used for the pure backend flow.
+
+Done manually in this order in Postman requests committed to this project:
+  1. `POST /auth/login`
+  2. token update into Postman Development environment `authToken`
+  3. `POST /tickets`
+  4. `GET /tickets/recent`
